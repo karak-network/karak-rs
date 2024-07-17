@@ -1,7 +1,10 @@
 [package]
 name = "karak-sdk"
-version = "0.1.0"
-edition = "2021"
+description = "Karak SDK"
+version = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+edition = { workspace = true }
 
 [dependencies]
 alloy = { version = "0.1.4", features = ["full"] }

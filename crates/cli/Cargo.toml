@@ -1,7 +1,10 @@
 [package]
-name = "karak"
-version = "0.1.0"
-edition = "2021"
+name = "karak-cli"
+description = "Karak CLI"
+version = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+edition = { workspace = true }
 
 [dependencies]
 clap = { version = "4.5.8", features = ["derive"] }
@@ -11,3 +14,7 @@ rpassword = "7.3"
 base64 = "0.22.1"
 bs58 = "0.5.1"
 sha3 = "0.10"
+
+[[bin]]
+name = "karak"
+path = "src/main.rs"
