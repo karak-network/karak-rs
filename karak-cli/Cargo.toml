@@ -1,0 +1,13 @@
+[package]
+name = "karak"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.8", features = ["derive"] }
+karak-sdk = { path = "../karak-sdk" }
+hex = "0.4.3"
+rpassword = "7.3"
+base64 = "0.22.1"
+bs58 = "0.5.1"
+sha3 = "0.10"

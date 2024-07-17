@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "karak-sdk",
+    "karak-cli"
+]
+resolver = "2"
+
