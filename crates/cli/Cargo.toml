@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.8", features = ["derive"] }
-karak-sdk = { path = "../karak-sdk" }
+karak-sdk = { path = "../sdk" }
 hex = "0.4.3"
 rpassword = "7.3"
 base64 = "0.22.1"

@@ -1,7 +1,3 @@
 [workspace]
-members = [
-    "karak-sdk",
-    "karak-cli"
-]
+members = ["crates/*"]
 resolver = "2"
-
