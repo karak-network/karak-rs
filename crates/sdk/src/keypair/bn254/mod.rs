@@ -4,9 +4,10 @@ use ark_bn254::{Fr, G1Affine, G2Affine};
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::UniformRand;
 use ark_serialize::{
-    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Validate,
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
 use rand::thread_rng;
+use thiserror::Error;
 
 use super::traits::Keypair as KeypairTrait;
 
@@ -18,25 +19,51 @@ pub struct Keypair {
     public_key: PublicKey,
 }
 
-impl TryFrom<&Keypair> for Vec<u8> {
-    type Error = SerializationError;
+#[derive(Debug, Error)]
+pub enum KeypairError {
+    #[error("Serialization error: {0}")]
+    SerializationError(SerializationError),
+}
 
-    fn try_from(value: &Keypair) -> Result<Self, Self::Error> {
+impl From<SerializationError> for KeypairError {
+    fn from(value: SerializationError) -> Self {
+        Self::SerializationError(value)
+    }
+}
+
+impl CanonicalSerialize for Keypair {
+    fn serialize_with_mode<W: ark_serialize::Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        self.secret_key.serialize_with_mode(writer, compress)
+    }
+
+    fn serialized_size(&self, compress: Compress) -> usize {
+        self.secret_key.serialized_size(compress)
+    }
+}
+
+impl TryFrom<Keypair> for Vec<u8> {
+    type Error = KeypairError;
+
+    fn try_from(value: Keypair) -> Result<Self, Self::Error> {
         let mut bytes = vec![];
 
-        value
-            .secret_key
-            .serialize_with_mode(&mut bytes, Compress::No)?;
+        value.serialize_with_mode(&mut bytes, Compress::No)?;
 
         Ok(bytes)
     }
 }
 
-impl TryFrom<&[u8]> for Keypair {
-    type Error = SerializationError;
-
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let secret_key = Fr::deserialize_with_mode(value, Compress::No, Validate::Yes)?;
+impl CanonicalDeserialize for Keypair {
+    fn deserialize_with_mode<R: ark_serialize::Read>(
+        reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let secret_key = Fr::deserialize_with_mode(reader, compress, validate)?;
 
         let g1_public_key = (G1Affine::generator() * secret_key).into_affine();
         let g2_public_key = (G2Affine::generator() * secret_key).into_affine();
@@ -48,6 +75,20 @@ impl TryFrom<&[u8]> for Keypair {
                 g2: g2_public_key.into(),
             },
         })
+    }
+}
+
+impl TryFrom<&[u8]> for Keypair {
+    type Error = KeypairError;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        Ok(Keypair::deserialize_uncompressed(value)?)
+    }
+}
+
+impl Valid for Keypair {
+    fn check(&self) -> Result<(), SerializationError> {
+        self.secret_key.check()
     }
 }
 

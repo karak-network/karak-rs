@@ -1,13 +1,15 @@
-use std::{fmt::Display, ops::Deref};
+use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use ark_bn254::{G1Affine, G2Affine};
-use ark_serialize::{
-    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Validate,
-};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use thiserror::Error;
 
-pub struct G1Pubkey(G1Affine);
-pub struct G2Pubkey(G2Affine);
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+pub struct G1Pubkey(pub(crate) G1Affine);
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+pub struct G2Pubkey(pub(crate) G2Affine);
 
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct PublicKey {
     pub g1: G1Pubkey,
     pub g2: G2Pubkey,
@@ -41,42 +43,34 @@ impl From<G2Affine> for G2Pubkey {
     }
 }
 
-impl TryFrom<&G2Pubkey> for Vec<u8> {
-    type Error = SerializationError;
+#[derive(Debug, Error)]
+pub enum PublicKeyError {
+    #[error("Serialization error: {0}")]
+    SerializationError(SerializationError),
+    #[error("Decoding error: {0}")]
+    DecodingError(#[from] bs58::decode::Error),
+}
 
-    fn try_from(value: &G2Pubkey) -> Result<Self, Self::Error> {
-        let mut bytes = vec![];
-
-        value.serialize_with_mode(&mut bytes, Compress::Yes)?;
-
-        Ok(bytes)
+impl From<SerializationError> for PublicKeyError {
+    fn from(value: SerializationError) -> Self {
+        Self::SerializationError(value)
     }
 }
 
-impl TryFrom<&[u8]> for G2Pubkey {
-    type Error = SerializationError;
+impl FromStr for G2Pubkey {
+    type Err = PublicKeyError;
 
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        Ok(G2Affine::deserialize_with_mode(value, Compress::Yes, Validate::Yes)?.into())
-    }
-}
-
-impl TryFrom<&str> for G2Pubkey {
-    type Error = SerializationError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        bs58::decode(value)
-            .into_vec()
-            .map_err(|_| SerializationError::InvalidData)?
-            .as_slice()
-            .try_into()
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(G2Pubkey::deserialize_compressed(
+            bs58::decode(value).into_vec()?.as_slice(),
+        )?)
     }
 }
 
 impl Display for G2Pubkey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut pubkey_bytes = vec![];
-        self.serialize_with_mode(&mut pubkey_bytes, Compress::Yes)
+        self.serialize_compressed(&mut pubkey_bytes)
             .map_err(|_| std::fmt::Error)?;
 
         write!(f, "{}", bs58::encode(pubkey_bytes).into_string())?;
