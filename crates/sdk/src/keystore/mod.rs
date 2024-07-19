@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::Path;
+use thiserror::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CryptoJSON {
@@ -20,12 +21,34 @@ pub struct CryptoJSON {
     pub mac: String,
 }
 
+#[derive(Debug, Error)]
+pub enum CryptoJSONError {
+    #[error("Invalid output length")]
+    InvalidOutputLen(#[from] scrypt::errors::InvalidOutputLen),
+    #[error("Invalid scrypt parameters")]
+    InvalidParams(#[from] scrypt::errors::InvalidParams),
+    #[error("Invalid cipher length")]
+    InvalidCipherLength(aes::cipher::errors::InvalidLength),
+    #[error("Parse error: {0}")]
+    ParseError(#[from] std::num::ParseIntError),
+    #[error("Failed to decode hex string: {0}")]
+    HexDecodeError(#[from] hex::FromHexError),
+    #[error("MAC verification failed")]
+    MacVerificationFailed,
+}
+
+impl From<aes::cipher::errors::InvalidLength> for CryptoJSONError {
+    fn from(_: aes::cipher::errors::InvalidLength) -> Self {
+        CryptoJSONError::InvalidCipherLength(aes::cipher::errors::InvalidLength)
+    }
+}
+
 pub fn encrypt_data_v3(
     data: &[u8],
     auth: &[u8],
     scrypt_log_n: u8,
     scrypt_p: u32,
-) -> Result<CryptoJSON, Box<dyn std::error::Error>> {
+) -> Result<CryptoJSON, CryptoJSONError> {
     let scrypt_r = 8;
     let scrypt_dklen = 32;
 
@@ -42,7 +65,7 @@ pub fn encrypt_data_v3(
     let mut iv = [0u8; 16];
     rng.fill_bytes(&mut iv);
 
-    let mut cipher = Aes128Ctr::new_from_slices(encrypt_key, &iv).unwrap();
+    let mut cipher = Aes128Ctr::new_from_slices(encrypt_key, &iv)?;
     let mut cipher_text = data.to_vec();
     cipher.apply_keystream(&mut cipher_text);
 
@@ -69,16 +92,13 @@ pub fn encrypt_data_v3(
         cipher_params: cipher_params_json,
         kdf: "scrypt".to_string(),
         kdf_params: scrypt_params_json,
-        mac: encode(mac.to_vec()),
+        mac: encode(mac),
     };
 
     Ok(crypto_struct)
 }
 
-pub fn decrypt_data_v3(
-    crypto: &CryptoJSON,
-    auth: &[u8],
-) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn decrypt_data_v3(crypto: &CryptoJSON, auth: &[u8]) -> Result<Vec<u8>, CryptoJSONError> {
     // Extract parameters from the crypto struct
     let scrypt_log_n: u8 = crypto.kdf_params["log_n"].parse()?;
     let scrypt_r: u32 = crypto.kdf_params["r"].parse()?;
@@ -103,11 +123,11 @@ pub fn decrypt_data_v3(
     let expected_mac = hasher.finalize();
 
     if expected_mac.as_slice() != hex::decode(&crypto.mac)? {
-        return Err("MAC verification failed".into());
+        return Err(CryptoJSONError::MacVerificationFailed);
     }
 
     // Decrypt the cipher text
-    let mut cipher = Aes128Ctr::new_from_slices(decrypt_key, &iv).unwrap();
+    let mut cipher = Aes128Ctr::new_from_slices(decrypt_key, &iv)?;
     let mut plain_text = cipher_text.to_vec();
     cipher.apply_keystream(&mut plain_text);
 

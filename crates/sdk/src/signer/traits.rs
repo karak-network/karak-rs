@@ -1,3 +1,5 @@
 pub trait Signer<M: Sized> {
-    fn sign_message(&self, message: M) -> Vec<u8>;
+    type Error;
+
+    fn sign_message(&self, message: M) -> Result<Vec<u8>, Self::Error>;
 }

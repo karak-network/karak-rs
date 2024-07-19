@@ -1,5 +1,6 @@
 use base64::Engine;
 use clap::{command, Parser, Subcommand, ValueEnum};
+use color_eyre::eyre::eyre;
 use karak_sdk::{
     keypair::{
         bn254::{self, G2Pubkey},
@@ -7,12 +8,12 @@ use karak_sdk::{
     },
     keystore::{self},
     signer::{
-        bls::{self, keypair_signer::verify_signature},
+        bls::{self, keypair_signer::verify_signature, signature::Signature},
         traits::Signer,
     },
 };
 use sha3::{Digest, Keccak256};
-use std::{fs, io, path::PathBuf};
+use std::{fs, path::PathBuf, str::FromStr};
 
 #[derive(Parser)]
 #[command(version, about = "Karak CLI", long_about = None)]
@@ -117,7 +118,8 @@ enum KeypairSubcommands {
     },
 }
 
-fn main() -> io::Result<()> {
+fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
     let cli = Cli::parse();
     match cli.command {
         Commands::Keypair { subcommand } => match subcommand {
@@ -140,12 +142,10 @@ fn main() -> io::Result<()> {
 
                         let passphrase = match passphrase {
                             Some(passphrase) => passphrase,
-                            None => {
-                                rpassword::prompt_password("Enter keypair passphrase: ").unwrap()
-                            }
+                            None => rpassword::prompt_password("Enter keypair passphrase: ")?,
                         };
 
-                        let sk_bytes: Vec<u8> = (&keypair).try_into().unwrap();
+                        let sk_bytes: Vec<u8> = keypair.try_into()?;
 
                         let passphrase_bytes = passphrase.as_bytes();
 
@@ -154,12 +154,13 @@ fn main() -> io::Result<()> {
                         // TODO: I kept the scrypt_log_n parameter to 15 here but this is orders of magnitude less secure than the geth keystore value of 18
                         //       This is in the interest of testing speed for now but we should update it later once we finalize the params
                         let encrypted_keypair =
-                            keystore::encrypt_data_v3(&sk_bytes, passphrase_bytes, 14, 1).unwrap();
+                            keystore::encrypt_data_v3(&sk_bytes, passphrase_bytes, 14, 1)?;
 
                         keystore::save_to_file(&encrypted_keypair, &output)?;
 
                         let resolved_path = output.canonicalize()?;
-                        let resolved_path_str = resolved_path.to_str().unwrap();
+                        let resolved_path_str =
+                            resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                         println!("Saved keypair to {resolved_path_str}");
                     }
                 }
@@ -174,14 +175,13 @@ fn main() -> io::Result<()> {
 
                     let passphrase = match passphrase {
                         Some(passphrase) => passphrase,
-                        None => rpassword::prompt_password("Enter keypair passphrase: ").unwrap(),
+                        None => rpassword::prompt_password("Enter keypair passphrase: ")?,
                     };
 
                     let sk_bytes =
-                        keystore::decrypt_data_v3(&encrypted_keypair, passphrase.as_bytes())
-                            .unwrap();
+                        keystore::decrypt_data_v3(&encrypted_keypair, passphrase.as_bytes())?;
 
-                    let keypair: bn254::Keypair = sk_bytes.as_slice().try_into().unwrap();
+                    let keypair = bn254::Keypair::try_from(sk_bytes.as_slice())?;
                     println!("Public Key: {keypair}");
                 }
             },
@@ -196,14 +196,14 @@ fn main() -> io::Result<()> {
             Scheme::Bls => {
                 let message_bytes = match message_encoding {
                     Encoding::Utf8 => message.as_bytes().to_vec(),
-                    Encoding::Hex => hex::decode(message).unwrap(),
-                    Encoding::Base64 => base64::engine::general_purpose::STANDARD
-                        .decode(message)
-                        .unwrap(),
-                    Encoding::Base64URL => base64::engine::general_purpose::URL_SAFE
-                        .decode(message)
-                        .unwrap(),
-                    Encoding::Base58 => bs58::decode(message).into_vec().unwrap(),
+                    Encoding::Hex => hex::decode(message)?,
+                    Encoding::Base64 => {
+                        base64::engine::general_purpose::STANDARD.decode(message)?
+                    }
+                    Encoding::Base64URL => {
+                        base64::engine::general_purpose::URL_SAFE.decode(message)?
+                    }
+                    Encoding::Base58 => bs58::decode(message).into_vec()?,
                 };
 
                 // We Keccak256 hash the message to a 32 bytes hash
@@ -219,18 +219,18 @@ fn main() -> io::Result<()> {
 
                 let passphrase = match passphrase {
                     Some(passphrase) => passphrase,
-                    None => rpassword::prompt_password("Enter keypair passphrase: ").unwrap(),
+                    None => rpassword::prompt_password("Enter keypair passphrase: ")?,
                 };
 
                 let sk_bytes =
-                    keystore::decrypt_data_v3(&encrypted_keypair, passphrase.as_bytes()).unwrap();
+                    keystore::decrypt_data_v3(&encrypted_keypair, passphrase.as_bytes())?;
 
-                let keypair: bn254::Keypair = sk_bytes.as_slice().try_into().unwrap();
+                let keypair: bn254::Keypair = sk_bytes.as_slice().try_into()?;
                 println!("Signing with BN254 keypair: {keypair}");
 
                 let signer = bls::keypair_signer::KeypairSigner::from(keypair);
 
-                let signature = signer.sign_message(&hash_buffer);
+                let signature = signer.sign_message(&hash_buffer)?;
                 let bs58_encoded_signature = bs58::encode(signature).into_string();
                 println!("Signature: {bs58_encoded_signature}");
             }
@@ -243,14 +243,10 @@ fn main() -> io::Result<()> {
         } => {
             let message_bytes = match message_encoding {
                 Encoding::Utf8 => message.as_bytes().to_vec(),
-                Encoding::Hex => hex::decode(message).unwrap(),
-                Encoding::Base64 => base64::engine::general_purpose::STANDARD
-                    .decode(message)
-                    .unwrap(),
-                Encoding::Base64URL => base64::engine::general_purpose::URL_SAFE
-                    .decode(message)
-                    .unwrap(),
-                Encoding::Base58 => bs58::decode(message).into_vec().unwrap(),
+                Encoding::Hex => hex::decode(message)?,
+                Encoding::Base64 => base64::engine::general_purpose::STANDARD.decode(message)?,
+                Encoding::Base64URL => base64::engine::general_purpose::URL_SAFE.decode(message)?,
+                Encoding::Base58 => bs58::decode(message).into_vec()?,
             };
 
             // We Keccak256 hash the message to a 32 bytes hash
@@ -262,9 +258,10 @@ fn main() -> io::Result<()> {
             let mut hash_buffer = [0u8; 32];
             hash_buffer.copy_from_slice(&result);
 
-            let public_key = G2Pubkey::try_from(public_key.as_str()).unwrap();
+            let public_key = G2Pubkey::from_str(&public_key)?;
+            let signature = Signature::from_str(&signature)?;
 
-            match verify_signature(public_key, &signature, &hash_buffer) {
+            match verify_signature(&public_key, &signature, &hash_buffer) {
                 Ok(_) => println!("Signature is valid"),
                 _ => println!("Signature verification failed!"),
             }
