@@ -1,9 +1,11 @@
 use std::{
     fmt::Display,
+    iter::Sum,
     ops::{Add, Sub},
     str::FromStr,
 };
 
+use alloy::primitives::Sign;
 use ark_bn254::G1Affine;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use thiserror::Error;
@@ -31,6 +33,18 @@ impl Add for &Signature {
     fn add(self, rhs: Self) -> Self::Output {
         // TODO: Can we optimize this by just storing the projective representations?
         Signature((self.0 + rhs.0).into())
+    }
+}
+
+impl Sum<Signature> for Signature {
+    fn sum<I: Iterator<Item = Signature>>(iter: I) -> Signature {
+        iter.fold(Signature::default(), |ref acc, ref sig| acc + sig)
+    }
+}
+
+impl<'a> Sum<&'a Signature> for Signature {
+    fn sum<I: Iterator<Item = &'a Signature>>(iter: I) -> Self {
+        iter.fold(Signature::default(), |ref acc, x| acc + x)
     }
 }
 

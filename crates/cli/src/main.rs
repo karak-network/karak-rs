@@ -283,9 +283,7 @@ fn main() -> color_eyre::Result<()> {
                 .collect();
 
             // TODO: Does this work? I.e. does adding default to existing signatures mess it up?
-            let agg_signature = signatures
-                .iter()
-                .fold(Signature::default(), |ref acc, sig| acc + sig);
+            let agg_signature: Signature = signatures.iter().sum();
 
             println!("Aggregated signature: {agg_signature}");
         }
@@ -296,9 +294,7 @@ fn main() -> color_eyre::Result<()> {
                 .collect();
 
             // TODO: Does this work? I.e. does adding default to existing keys mess it up?
-            let agg_key = keys
-                .iter()
-                .fold(G2Pubkey::default(), |ref acc, key| acc + key);
+            let agg_key: G2Pubkey = keys.iter().sum();
 
             println!("Aggregated key: {agg_key}");
         }

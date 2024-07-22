@@ -1,5 +1,6 @@
 use std::{
     fmt::Display,
+    iter::Sum,
     ops::{Add, Deref, Sub},
     str::FromStr,
 };
@@ -36,6 +37,18 @@ impl Add for &G1Pubkey {
     }
 }
 
+impl Sum<G1Pubkey> for G1Pubkey {
+    fn sum<I: Iterator<Item = G1Pubkey>>(iter: I) -> G1Pubkey {
+        iter.fold(G1Pubkey::default(), |ref acc, ref sig| acc + sig)
+    }
+}
+
+impl<'a> Sum<&'a G1Pubkey> for G1Pubkey {
+    fn sum<I: Iterator<Item = &'a G1Pubkey>>(iter: I) -> Self {
+        iter.fold(G1Pubkey::default(), |ref acc, x| acc + x)
+    }
+}
+
 impl Sub for &G1Pubkey {
     type Output = G1Pubkey;
 
@@ -65,6 +78,18 @@ impl Add for &G2Pubkey {
     fn add(self, rhs: Self) -> Self::Output {
         // TODO: Can we optimize this by just storing the projective representations?
         G2Pubkey((self.0 + rhs.0).into())
+    }
+}
+
+impl Sum<G2Pubkey> for G2Pubkey {
+    fn sum<I: Iterator<Item = G2Pubkey>>(iter: I) -> G2Pubkey {
+        iter.fold(G2Pubkey::default(), |ref acc, ref sig| acc + sig)
+    }
+}
+
+impl<'a> Sum<&'a G2Pubkey> for G2Pubkey {
+    fn sum<I: Iterator<Item = &'a G2Pubkey>>(iter: I) -> Self {
+        iter.fold(G2Pubkey::default(), |ref acc, x| acc + x)
     }
 }
 
