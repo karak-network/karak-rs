@@ -37,6 +37,15 @@ impl Add for &G1Pubkey {
     }
 }
 
+impl Add for G1Pubkey {
+    type Output = G1Pubkey;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G1Pubkey((self.0 + rhs.0).into())
+    }
+}
+
 impl Sum<G1Pubkey> for G1Pubkey {
     fn sum<I: Iterator<Item = G1Pubkey>>(iter: I) -> G1Pubkey {
         iter.fold(G1Pubkey::default(), |ref acc, ref sig| acc + sig)
@@ -50,6 +59,15 @@ impl<'a> Sum<&'a G1Pubkey> for G1Pubkey {
 }
 
 impl Sub for &G1Pubkey {
+    type Output = G1Pubkey;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G1Pubkey((self.0 - rhs.0).into())
+    }
+}
+
+impl Sub for G1Pubkey {
     type Output = G1Pubkey;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -81,6 +99,15 @@ impl Add for &G2Pubkey {
     }
 }
 
+impl Add for G2Pubkey {
+    type Output = G2Pubkey;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G2Pubkey((self.0 + rhs.0).into())
+    }
+}
+
 impl Sum<G2Pubkey> for G2Pubkey {
     fn sum<I: Iterator<Item = G2Pubkey>>(iter: I) -> G2Pubkey {
         iter.fold(G2Pubkey::default(), |ref acc, ref sig| acc + sig)
@@ -94,6 +121,15 @@ impl<'a> Sum<&'a G2Pubkey> for G2Pubkey {
 }
 
 impl Sub for &G2Pubkey {
+    type Output = G2Pubkey;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G2Pubkey((self.0 - rhs.0).into())
+    }
+}
+
+impl Sub for G2Pubkey {
     type Output = G2Pubkey;
 
     fn sub(self, rhs: Self) -> Self::Output {

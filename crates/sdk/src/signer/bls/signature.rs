@@ -27,6 +27,15 @@ impl From<SerializationError> for SignatureError {
     }
 }
 
+impl Add for Signature {
+    type Output = Signature;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        Signature((self.0 + rhs.0).into())
+    }
+}
+
 impl Add for &Signature {
     type Output = Signature;
 
@@ -45,6 +54,15 @@ impl Sum<Signature> for Signature {
 impl<'a> Sum<&'a Signature> for Signature {
     fn sum<I: Iterator<Item = &'a Signature>>(iter: I) -> Self {
         iter.fold(Signature::default(), |ref acc, x| acc + x)
+    }
+}
+
+impl Sub for Signature {
+    type Output = Signature;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        Signature((self.0 - rhs.0).into())
     }
 }
 
