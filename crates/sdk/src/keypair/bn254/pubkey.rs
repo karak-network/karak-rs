@@ -1,12 +1,16 @@
-use std::{fmt::Display, ops::Deref, str::FromStr};
+use std::{
+    fmt::Display,
+    ops::{Add, Deref, Sub},
+    str::FromStr,
+};
 
 use ark_bn254::{G1Affine, G2Affine};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use thiserror::Error;
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Default, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct G1Pubkey(pub(crate) G1Affine);
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Default, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct G2Pubkey(pub(crate) G2Affine);
 
 #[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
@@ -23,6 +27,24 @@ impl Deref for G1Pubkey {
     }
 }
 
+impl Add for &G1Pubkey {
+    type Output = G1Pubkey;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G1Pubkey((self.0 + rhs.0).into())
+    }
+}
+
+impl Sub for &G1Pubkey {
+    type Output = G1Pubkey;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G1Pubkey((self.0 - rhs.0).into())
+    }
+}
+
 impl From<G1Affine> for G1Pubkey {
     fn from(value: G1Affine) -> Self {
         Self(value)
@@ -34,6 +56,24 @@ impl Deref for G2Pubkey {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl Add for &G2Pubkey {
+    type Output = G2Pubkey;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G2Pubkey((self.0 + rhs.0).into())
+    }
+}
+
+impl Sub for &G2Pubkey {
+    type Output = G2Pubkey;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G2Pubkey((self.0 - rhs.0).into())
     }
 }
 
