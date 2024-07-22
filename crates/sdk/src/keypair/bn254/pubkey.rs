@@ -1,12 +1,17 @@
-use std::{fmt::Display, ops::Deref, str::FromStr};
+use std::{
+    fmt::Display,
+    iter::Sum,
+    ops::{Add, Deref, Sub},
+    str::FromStr,
+};
 
 use ark_bn254::{G1Affine, G2Affine};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use thiserror::Error;
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Default, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct G1Pubkey(pub(crate) G1Affine);
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Default, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct G2Pubkey(pub(crate) G2Affine);
 
 #[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
@@ -23,6 +28,54 @@ impl Deref for G1Pubkey {
     }
 }
 
+impl Add for &G1Pubkey {
+    type Output = G1Pubkey;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G1Pubkey((self.0 + rhs.0).into())
+    }
+}
+
+impl Add for G1Pubkey {
+    type Output = G1Pubkey;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G1Pubkey((self.0 + rhs.0).into())
+    }
+}
+
+impl Sum<G1Pubkey> for G1Pubkey {
+    fn sum<I: Iterator<Item = G1Pubkey>>(iter: I) -> G1Pubkey {
+        iter.fold(G1Pubkey::default(), |ref acc, ref sig| acc + sig)
+    }
+}
+
+impl<'a> Sum<&'a G1Pubkey> for G1Pubkey {
+    fn sum<I: Iterator<Item = &'a G1Pubkey>>(iter: I) -> Self {
+        iter.fold(G1Pubkey::default(), |ref acc, x| acc + x)
+    }
+}
+
+impl Sub for &G1Pubkey {
+    type Output = G1Pubkey;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G1Pubkey((self.0 - rhs.0).into())
+    }
+}
+
+impl Sub for G1Pubkey {
+    type Output = G1Pubkey;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G1Pubkey((self.0 - rhs.0).into())
+    }
+}
+
 impl From<G1Affine> for G1Pubkey {
     fn from(value: G1Affine) -> Self {
         Self(value)
@@ -34,6 +87,54 @@ impl Deref for G2Pubkey {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl Add for &G2Pubkey {
+    type Output = G2Pubkey;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G2Pubkey((self.0 + rhs.0).into())
+    }
+}
+
+impl Add for G2Pubkey {
+    type Output = G2Pubkey;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G2Pubkey((self.0 + rhs.0).into())
+    }
+}
+
+impl Sum<G2Pubkey> for G2Pubkey {
+    fn sum<I: Iterator<Item = G2Pubkey>>(iter: I) -> G2Pubkey {
+        iter.fold(G2Pubkey::default(), |ref acc, ref sig| acc + sig)
+    }
+}
+
+impl<'a> Sum<&'a G2Pubkey> for G2Pubkey {
+    fn sum<I: Iterator<Item = &'a G2Pubkey>>(iter: I) -> Self {
+        iter.fold(G2Pubkey::default(), |ref acc, x| acc + x)
+    }
+}
+
+impl Sub for &G2Pubkey {
+    type Output = G2Pubkey;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G2Pubkey((self.0 - rhs.0).into())
+    }
+}
+
+impl Sub for G2Pubkey {
+    type Output = G2Pubkey;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // TODO: Can we optimize this by just storing the projective representations?
+        G2Pubkey((self.0 - rhs.0).into())
     }
 }
 

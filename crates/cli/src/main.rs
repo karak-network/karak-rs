@@ -63,6 +63,16 @@ enum Commands {
         #[arg(short = 'k', long)]
         public_key: String,
     },
+    /// Aggregate BLS signatures
+    SigAgg {
+        #[arg(short, long)]
+        signatures: Vec<String>,
+    },
+    /// Aggregate BLS BN254 G2 pubkeys
+    KeyAgg {
+        #[arg(short, long)]
+        keys: Vec<String>,
+    },
 }
 
 #[derive(Clone, ValueEnum, Debug)]
@@ -265,6 +275,28 @@ fn main() -> color_eyre::Result<()> {
                 Ok(_) => println!("Signature is valid"),
                 _ => println!("Signature verification failed!"),
             }
+        }
+        Commands::SigAgg { signatures } => {
+            let signatures: Vec<Signature> = signatures
+                .iter()
+                .map(|signature| Signature::from_str(signature).unwrap())
+                .collect();
+
+            // TODO: Does this work? I.e. does adding default to existing signatures mess it up?
+            let agg_signature: Signature = signatures.iter().sum();
+
+            println!("Aggregated signature: {agg_signature}");
+        }
+        Commands::KeyAgg { keys } => {
+            let keys: Vec<G2Pubkey> = keys
+                .iter()
+                .map(|key| G2Pubkey::from_str(key).unwrap())
+                .collect();
+
+            // TODO: Does this work? I.e. does adding default to existing keys mess it up?
+            let agg_key: G2Pubkey = keys.iter().sum();
+
+            println!("Aggregated key: {agg_key}");
         }
     }
 
