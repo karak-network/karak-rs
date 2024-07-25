@@ -9,12 +9,12 @@ use ark_bn254::{G1Affine, G2Affine};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use thiserror::Error;
 
-#[derive(Default, Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Clone, Default, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct G1Pubkey(pub(crate) G1Affine);
-#[derive(Default, Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Clone, Default, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct G2Pubkey(pub(crate) G2Affine);
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Clone, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct PublicKey {
     pub g1: G1Pubkey,
     pub g2: G2Pubkey,

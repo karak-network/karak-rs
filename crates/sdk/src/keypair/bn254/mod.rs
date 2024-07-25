@@ -14,6 +14,7 @@ use super::traits::Keypair as KeypairTrait;
 mod pubkey;
 pub use pubkey::*;
 
+#[derive(Clone)]
 pub struct Keypair {
     secret_key: Fr,
     public_key: PublicKey,
@@ -152,6 +153,6 @@ mod tests {
             .unwrap();
 
         assert_eq!(secret_key_bytes.len(), 32);
-        assert_eq!(public_key_bytes.len(), 32);
+        assert_eq!(public_key_bytes.len(), 64);
     }
 }
