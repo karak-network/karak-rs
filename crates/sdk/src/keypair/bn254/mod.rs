@@ -11,7 +11,9 @@ use thiserror::Error;
 
 use super::traits::Keypair as KeypairTrait;
 
+mod encryption;
 mod pubkey;
+pub use encryption::*;
 pub use pubkey::*;
 
 #[derive(Clone)]
@@ -50,6 +52,18 @@ impl TryFrom<Keypair> for Vec<u8> {
     type Error = KeypairError;
 
     fn try_from(value: Keypair) -> Result<Self, Self::Error> {
+        let mut bytes = vec![];
+
+        value.serialize_with_mode(&mut bytes, Compress::No)?;
+
+        Ok(bytes)
+    }
+}
+
+impl TryFrom<&Keypair> for Vec<u8> {
+    type Error = KeypairError;
+
+    fn try_from(value: &Keypair) -> Result<Self, Self::Error> {
         let mut bytes = vec![];
 
         value.serialize_with_mode(&mut bytes, Compress::No)?;

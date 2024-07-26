@@ -6,7 +6,7 @@ use karak_sdk::{
         bn254::{self, G2Pubkey},
         traits::Keypair,
     },
-    keystore::{self},
+    keystore::{self, traits::EncryptedKeystore},
     signer::{
         bls::{self, keypair_signer::verify_signature, signature::Signature},
         traits::Signer,
@@ -155,18 +155,9 @@ fn main() -> color_eyre::Result<()> {
                             None => rpassword::prompt_password("Enter keypair passphrase: ")?,
                         };
 
-                        let sk_bytes: Vec<u8> = keypair.try_into()?;
-
-                        let passphrase_bytes = passphrase.as_bytes();
-
-                        println!("Encrypting keypair...");
-
-                        // TODO: I kept the scrypt_log_n parameter to 15 here but this is orders of magnitude less secure than the geth keystore value of 18
-                        //       This is in the interest of testing speed for now but we should update it later once we finalize the params
-                        let encrypted_keypair =
-                            keystore::encrypt_data_v3(&sk_bytes, passphrase_bytes, 14, 1)?;
-
-                        keystore::save_to_file(&encrypted_keypair, &output)?;
+                        let local_keystore =
+                            keystore::local::LocalEncryptedKeystore::new(output.clone());
+                        local_keystore.store(&keypair, &passphrase)?;
 
                         let resolved_path = output.canonicalize()?;
                         let resolved_path_str =
@@ -181,17 +172,15 @@ fn main() -> color_eyre::Result<()> {
                 passphrase,
             } => match curve {
                 Curve::Bn254 => {
-                    let encrypted_keypair = keystore::load_from_file(&keypair)?;
+                    let local_keystore = keystore::local::LocalEncryptedKeystore::new(keypair);
 
                     let passphrase = match passphrase {
                         Some(passphrase) => passphrase,
                         None => rpassword::prompt_password("Enter keypair passphrase: ")?,
                     };
 
-                    let sk_bytes =
-                        keystore::decrypt_data_v3(&encrypted_keypair, passphrase.as_bytes())?;
+                    let keypair: bn254::Keypair = local_keystore.retrieve(&passphrase)?;
 
-                    let keypair = bn254::Keypair::try_from(sk_bytes.as_slice())?;
                     println!("Public Key: {keypair}");
                 }
             },
@@ -225,17 +214,14 @@ fn main() -> color_eyre::Result<()> {
                 let mut hash_buffer = [0u8; 32];
                 hash_buffer.copy_from_slice(&result);
 
-                let encrypted_keypair = keystore::load_from_file(&keypair)?;
-
                 let passphrase = match passphrase {
                     Some(passphrase) => passphrase,
                     None => rpassword::prompt_password("Enter keypair passphrase: ")?,
                 };
 
-                let sk_bytes =
-                    keystore::decrypt_data_v3(&encrypted_keypair, passphrase.as_bytes())?;
+                let keypair: bn254::Keypair =
+                    keystore::local::LocalEncryptedKeystore::new(keypair).retrieve(&passphrase)?;
 
-                let keypair: bn254::Keypair = sk_bytes.as_slice().try_into()?;
                 println!("Signing with BN254 keypair: {keypair}");
 
                 let signer = bls::keypair_signer::KeypairSigner::from(keypair);
