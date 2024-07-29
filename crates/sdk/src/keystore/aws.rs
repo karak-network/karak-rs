@@ -1,34 +1,97 @@
+use async_trait::async_trait;
+use aws_sdk_secretsmanager::primitives::Blob;
 use thiserror::Error;
 
 use crate::keypair::traits::Encryptable;
 
-use super::traits::EncryptedKeystore;
+use super::traits::AsyncEncryptedKeystore;
 
 #[derive(Debug, Error)]
 pub enum AwsKeystoreError {
     #[error("Encryption error: {0}")]
     EncryptionError(String),
+    #[error("AWS Secrets Manager Put error: {0}")]
+    AwsSecretsManagerPutError(
+        #[from]
+        aws_sdk_secretsmanager::error::SdkError<
+            aws_sdk_secretsmanager::operation::put_secret_value::PutSecretValueError,
+        >,
+    ),
+    #[error("AWS Secrets Manager Get error: {0}")]
+    AwsSecretsManagerGetError(
+        #[from]
+        aws_sdk_secretsmanager::error::SdkError<
+            aws_sdk_secretsmanager::operation::get_secret_value::GetSecretValueError,
+        >,
+    ),
+    #[error("AWS Secrets Manager Blob empty")]
+    AwsSecretBlobEmpty,
 }
 
 pub struct AwsEncryptedKeystore {
-    // TODO
+    client: aws_sdk_secretsmanager::Client,
 }
 
 impl AwsEncryptedKeystore {
-    // TODO
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(config: &aws_config::SdkConfig) -> Self {
+        Self {
+            client: aws_sdk_secretsmanager::Client::new(config),
+        }
     }
 }
 
-impl<Keypair: Encryptable> EncryptedKeystore<Keypair> for AwsEncryptedKeystore {
+pub struct AwsKeystoreParams {
+    secret_name: String,
+}
+
+#[async_trait]
+impl<Keypair: Encryptable + Send + Sync> AsyncEncryptedKeystore<Keypair, AwsKeystoreParams>
+    for AwsEncryptedKeystore
+{
     type StorageError = AwsKeystoreError;
 
-    fn store(&self, _keypair: &Keypair, _passphrase: &str) -> Result<(), Self::StorageError> {
-        todo!()
+    async fn store(
+        &self,
+        keypair: &Keypair,
+        passphrase: &str,
+        params: &AwsKeystoreParams,
+    ) -> Result<(), Self::StorageError> {
+        let encrypted_keypair = keypair
+            .encrypt(passphrase)
+            // TODO: Handle this error better. There has to be a more idiomatic way. cc @johanan
+            .map_err(|err| AwsKeystoreError::EncryptionError(err.to_string()))?;
+
+        // TODO: Maybe handle some of the possible error scenarios here?
+        // TODO: Also make sure this is idempotent and can work even if the secret does not exist yet
+        self.client
+            .put_secret_value()
+            .secret_id(&params.secret_name)
+            .set_secret_binary(Some(Blob::new(encrypted_keypair)))
+            .send()
+            .await?;
+
+        Ok(())
     }
 
-    fn retrieve(&self, _passphrase: &str) -> Result<Keypair, Self::StorageError> {
-        todo!()
+    async fn retrieve(
+        &self,
+        passphrase: &str,
+        params: &AwsKeystoreParams,
+    ) -> Result<Keypair, Self::StorageError> {
+        let resp = self
+            .client
+            .get_secret_value()
+            .secret_id(&params.secret_name)
+            .send()
+            .await?;
+
+        let encrypted_keypair = match resp.secret_binary() {
+            Some(blob) => blob.as_ref(),
+            None => return Err(AwsKeystoreError::AwsSecretBlobEmpty),
+        };
+
+        Keypair::decrypt(encrypted_keypair, passphrase)
+            // TODO: Handle this error better. There has to be a more idiomatic way. cc @johanan
+            .map_err(|err| AwsKeystoreError::EncryptionError(err.to_string()))
     }
 }
