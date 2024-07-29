@@ -156,7 +156,10 @@ mod tests {
         let signature = signer.sign_message(&message).unwrap();
 
         let sig = Signature::try_from(signature.as_slice()).unwrap();
-        assert!(verify_signature(&other_keypair.public_key().g2, &sig, &message).is_err());
+        assert!(matches!(
+            verify_signature(&other_keypair.public_key().g2, &sig, &message),
+            Err(KeypairSignerError::InvalidSignature)
+        ));
     }
 
     #[test]
@@ -208,7 +211,10 @@ mod tests {
         // Combine public keys (including the third unused one)
         let combined_pubkey = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
 
-        assert!(verify_signature(&combined_pubkey, &combined_sig, &message).is_err());
+        assert!(matches!(
+            verify_signature(&combined_pubkey, &combined_sig, &message),
+            Err(KeypairSignerError::InvalidSignature)
+        ));
     }
 
     #[test]
@@ -226,7 +232,13 @@ mod tests {
 
         assert!(verify_signature(&keypair.public_key().g2, &sig1, &message1).is_ok());
         assert!(verify_signature(&keypair.public_key().g2, &sig2, &message2).is_ok());
-        assert!(verify_signature(&keypair.public_key().g2, &sig1, &message2).is_err());
-        assert!(verify_signature(&keypair.public_key().g2, &sig2, &message1).is_err());
+        assert!(matches!(
+            verify_signature(&keypair.public_key().g2, &sig1, &message2),
+            Err(KeypairSignerError::InvalidSignature)
+        ));
+        assert!(matches!(
+            verify_signature(&keypair.public_key().g2, &sig2, &message1),
+            Err(KeypairSignerError::InvalidSignature)
+        ));
     }
 }
