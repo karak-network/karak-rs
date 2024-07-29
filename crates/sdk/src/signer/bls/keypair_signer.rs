@@ -102,3 +102,143 @@ fn hash_to_g1_point(message: &[u8; 32]) -> G1Affine {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn generate_keypair() -> bn254::Keypair {
+        bn254::Keypair::generate()
+    }
+
+    const PRECOMPUTED_KEYPAIR: [u8; 32] = [
+        198, 117, 151, 83, 137, 156, 117, 191, 115, 217, 13, 31, 182, 91, 76, 247, 59, 36, 217,
+        199, 162, 183, 248, 204, 213, 190, 143, 127, 12, 30, 224, 32,
+    ];
+    // This signature is for message [42u8; 32]
+    const PRECOMPUTED_SIGNATURE_FOR_KEYPAIR: &str = "4R27e1Aou8nsUsrMcb51WMS49BBzogFxo5fNygFzA9zk";
+
+    #[test]
+    fn test_precomputed_signature() {
+        let keypair: bn254::Keypair = PRECOMPUTED_KEYPAIR.as_slice().try_into().unwrap();
+        let signer = KeypairSigner::from(keypair.clone());
+        let message = [42u8; 32];
+
+        let expected_signature = bs58::decode(PRECOMPUTED_SIGNATURE_FOR_KEYPAIR)
+            .into_vec()
+            .unwrap();
+        let actual_signature = signer.sign_message(&message).unwrap();
+        assert_eq!(actual_signature, expected_signature);
+
+        let expected_sig = Signature::try_from(expected_signature.as_slice()).unwrap();
+        assert!(verify_signature(&keypair.public_key().g2, &expected_sig, &message).is_ok());
+    }
+
+    #[test]
+    fn test_sign_and_verify() {
+        let keypair = generate_keypair();
+        let signer = KeypairSigner::from(keypair.clone());
+        let message = [42u8; 32];
+
+        let signature = signer.sign_message(&message).unwrap();
+        let sig = Signature::try_from(signature.as_slice()).unwrap();
+
+        assert!(verify_signature(&keypair.public_key().g2, &sig, &message).is_ok());
+    }
+
+    #[test]
+    fn test_invalid_signature() {
+        let keypair = generate_keypair();
+        let other_keypair = generate_keypair();
+        let signer = KeypairSigner::from(keypair.clone());
+        let message = [42u8; 32];
+
+        let signature = signer.sign_message(&message).unwrap();
+
+        let sig = Signature::try_from(signature.as_slice()).unwrap();
+        assert!(matches!(
+            verify_signature(&other_keypair.public_key().g2, &sig, &message),
+            Err(KeypairSignerError::InvalidSignature)
+        ));
+    }
+
+    #[test]
+    fn test_combine_signatures() {
+        let keypairs: Vec<_> = (0..3).map(|_| generate_keypair()).collect();
+        let signers: Vec<_> = keypairs
+            .iter()
+            .map(|kp| KeypairSigner::from(kp.clone()))
+            .collect();
+        let message = [42u8; 32];
+
+        let signatures: Vec<_> = signers
+            .iter()
+            .take(3)
+            .map(|signer| signer.sign_message(&message).unwrap())
+            .collect();
+
+        let combined_sig = signatures
+            .iter()
+            .map(|sig| Signature::try_from(sig.as_slice()).unwrap())
+            .sum();
+
+        // Combine public keys
+        let combined_pubkey = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
+
+        assert!(verify_signature(&combined_pubkey, &combined_sig, &message).is_ok());
+    }
+
+    #[test]
+    fn test_combine_signatures_mismatch() {
+        let keypairs: Vec<_> = (0..3).map(|_| generate_keypair()).collect();
+        let signers: Vec<_> = keypairs
+            .iter()
+            .map(|kp| KeypairSigner::from(kp.clone()))
+            .collect();
+        let message = [42u8; 32];
+
+        let signatures: Vec<_> = signers
+            .iter()
+            .take(2) // Only sign with the first two keypairs
+            .map(|signer| signer.sign_message(&message).unwrap())
+            .collect();
+
+        let combined_sig = signatures
+            .iter()
+            .map(|sig| Signature::try_from(sig.as_slice()).unwrap())
+            .sum();
+
+        // Combine public keys (including the third unused one)
+        let combined_pubkey = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
+
+        assert!(matches!(
+            verify_signature(&combined_pubkey, &combined_sig, &message),
+            Err(KeypairSignerError::InvalidSignature)
+        ));
+    }
+
+    #[test]
+    fn test_sign_different_messages() {
+        let keypair = generate_keypair();
+        let signer = KeypairSigner::from(keypair.clone());
+        let message1 = [1u8; 32];
+        let message2 = [2u8; 32];
+
+        let signature1 = signer.sign_message(&message1).unwrap();
+        let signature2 = signer.sign_message(&message2).unwrap();
+
+        let sig1 = Signature::try_from(signature1.as_slice()).unwrap();
+        let sig2 = Signature::try_from(signature2.as_slice()).unwrap();
+
+        assert!(verify_signature(&keypair.public_key().g2, &sig1, &message1).is_ok());
+        assert!(verify_signature(&keypair.public_key().g2, &sig2, &message2).is_ok());
+        assert!(matches!(
+            verify_signature(&keypair.public_key().g2, &sig1, &message2),
+            Err(KeypairSignerError::InvalidSignature)
+        ));
+        assert!(matches!(
+            verify_signature(&keypair.public_key().g2, &sig2, &message1),
+            Err(KeypairSignerError::InvalidSignature)
+        ));
+    }
+}

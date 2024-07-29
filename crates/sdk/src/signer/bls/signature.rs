@@ -5,7 +5,6 @@ use std::{
     str::FromStr,
 };
 
-use alloy::primitives::Sign;
 use ark_bn254::G1Affine;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use thiserror::Error;
@@ -102,3 +101,4 @@ impl TryFrom<&[u8]> for Signature {
         Ok(sig)
     }
 }
+
