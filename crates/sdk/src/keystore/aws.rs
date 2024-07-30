@@ -45,10 +45,8 @@ pub struct AwsKeystoreParams {
 
 impl<Keypair: Encryptable + Send + Sync> AsyncEncryptedKeystore<Keypair, AwsKeystoreParams>
     for AwsEncryptedKeystore
-where
-    <Keypair as Encryptable>::EncryptionError: std::error::Error + Send + Sync,
 {
-    type StorageError = AwsKeystoreError<<Keypair as Encryptable>::EncryptionError>;
+    type StorageError = AwsKeystoreError<Keypair::EncryptionError>;
 
     async fn store(
         &self,
