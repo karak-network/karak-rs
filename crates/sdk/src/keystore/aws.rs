@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use aws_sdk_secretsmanager::primitives::Blob;
 use thiserror::Error;
 
@@ -44,7 +43,6 @@ pub struct AwsKeystoreParams {
     secret_name: String,
 }
 
-#[async_trait]
 impl<Keypair: Encryptable + Send + Sync + std::fmt::Debug>
     AsyncEncryptedKeystore<Keypair, AwsKeystoreParams> for AwsEncryptedKeystore
 {
