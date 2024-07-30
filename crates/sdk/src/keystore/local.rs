@@ -1,4 +1,5 @@
 use std::{
+    error::Error,
     fs::File,
     io::{Read, Write},
     path::PathBuf,
@@ -12,7 +13,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum LocalKeystoreError {
     #[error("Encryption error: {0}")]
-    EncryptionError(String),
+    EncryptionError(Box<dyn Error + Send + Sync>),
 
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
@@ -38,7 +39,7 @@ impl<Keypair: Encryptable> EncryptedKeystore<Keypair> for LocalEncryptedKeystore
         let encrypted_keypair = keypair
             .encrypt(passphrase)
             // TODO: Handle this error better. There has to be a more idiomatic way. cc @johanan
-            .map_err(|err| LocalKeystoreError::EncryptionError(err.to_string()))?;
+            .map_err(|err| LocalKeystoreError::EncryptionError(Box::new(err)))?;
 
         let mut file = File::create(&self.file_path)?;
 
@@ -56,6 +57,6 @@ impl<Keypair: Encryptable> EncryptedKeystore<Keypair> for LocalEncryptedKeystore
 
         Keypair::decrypt(&encrypted_keypair, passphrase)
             // TODO: Handle this error better. There has to be a more idiomatic way. cc @johanan
-            .map_err(|err| LocalKeystoreError::EncryptionError(err.to_string()))
+            .map_err(|err| LocalKeystoreError::EncryptionError(Box::new(err)))
     }
 }

@@ -11,7 +11,7 @@ pub trait Keypair: Display {
 }
 
 pub trait Encryptable: Sized {
-    type EncryptionError: Error;
+    type EncryptionError: Error + Send + Sync + 'static;
 
     fn encrypt(&self, passphrase: &str) -> Result<Vec<u8>, Self::EncryptionError>;
     fn decrypt(encrypted_keypair: &[u8], passphrase: &str) -> Result<Self, Self::EncryptionError>;
