@@ -6,9 +6,9 @@ use crate::keypair::traits::Encryptable;
 use super::traits::AsyncEncryptedKeystore;
 
 #[derive(Debug, Error)]
-pub enum AwsKeystoreError<Keypair: Encryptable + Send + Sync> {
+pub enum AwsKeystoreError<E: std::error::Error + Send + Sync> {
     #[error("Encryption error: {0}")]
-    EncryptionError(Keypair::EncryptionError),
+    EncryptionError(E),
     #[error("AWS Secrets Manager Put error: {0}")]
     AwsSecretsManagerPutError(
         #[from]
@@ -43,10 +43,12 @@ pub struct AwsKeystoreParams {
     secret_name: String,
 }
 
-impl<Keypair: Encryptable + Send + Sync + std::fmt::Debug>
-    AsyncEncryptedKeystore<Keypair, AwsKeystoreParams> for AwsEncryptedKeystore
+impl<Keypair: Encryptable + Send + Sync> AsyncEncryptedKeystore<Keypair, AwsKeystoreParams>
+    for AwsEncryptedKeystore
+where
+    <Keypair as Encryptable>::EncryptionError: std::error::Error + Send + Sync,
 {
-    type StorageError = AwsKeystoreError<Keypair>;
+    type StorageError = AwsKeystoreError<<Keypair as Encryptable>::EncryptionError>;
 
     async fn store(
         &self,
@@ -56,7 +58,7 @@ impl<Keypair: Encryptable + Send + Sync + std::fmt::Debug>
     ) -> Result<(), Self::StorageError> {
         let encrypted_keypair = keypair
             .encrypt(passphrase)
-            .map_err(|err| AwsKeystoreError::EncryptionError(err))?;
+            .map_err(AwsKeystoreError::EncryptionError)?;
 
         // TODO: Maybe handle some of the possible error scenarios here?
         // TODO: Also make sure this is idempotent and can work even if the secret does not exist yet
@@ -87,7 +89,6 @@ impl<Keypair: Encryptable + Send + Sync + std::fmt::Debug>
             None => return Err(AwsKeystoreError::AwsSecretBlobEmpty),
         };
 
-        Keypair::decrypt(encrypted_keypair, passphrase)
-            .map_err(|err| AwsKeystoreError::EncryptionError(err))
+        Keypair::decrypt(encrypted_keypair, passphrase).map_err(AwsKeystoreError::EncryptionError)
     }
 }
