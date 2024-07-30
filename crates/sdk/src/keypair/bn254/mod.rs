@@ -16,7 +16,7 @@ mod pubkey;
 pub use encryption::*;
 pub use pubkey::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Keypair {
     secret_key: Fr,
     public_key: PublicKey,
