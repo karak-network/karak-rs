@@ -15,7 +15,8 @@ pub struct GcpEncrypedKeystore {
 }
 
 impl GcpEncrypedKeystore {
-    // TODO
+    // TODO: Implement and remove this lint
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
