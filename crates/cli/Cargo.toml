@@ -15,6 +15,9 @@ base64 = "0.22.1"
 bs58 = "0.5.1"
 sha3 = "0.10"
 color-eyre = "0.6.3"
+aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
+aws-sdk-secretsmanager = "1.40.0"
+tokio = { version = "1", features = ["full"] }
 
 [[bin]]
 name = "karak"

@@ -16,6 +16,13 @@ pub enum AwsKeystoreError<E: std::error::Error + Send + Sync> {
             aws_sdk_secretsmanager::operation::put_secret_value::PutSecretValueError,
         >,
     ),
+    #[error("AWS Secrets Manager Create error: {0}")]
+    AwsSecretsManagerCreateError(
+        #[from]
+        aws_sdk_secretsmanager::error::SdkError<
+            aws_sdk_secretsmanager::operation::create_secret::CreateSecretError,
+        >,
+    ),
     #[error("AWS Secrets Manager Get error: {0}")]
     AwsSecretsManagerGetError(
         #[from]
@@ -40,7 +47,7 @@ impl AwsEncryptedKeystore {
 }
 
 pub struct AwsKeystoreParams {
-    secret_name: String,
+    pub secret_name: String,
 }
 
 impl<Keypair: Encryptable + Send + Sync> AsyncEncryptedKeystore<Keypair, AwsKeystoreParams>
@@ -60,12 +67,22 @@ impl<Keypair: Encryptable + Send + Sync> AsyncEncryptedKeystore<Keypair, AwsKeys
 
         // TODO: Maybe handle some of the possible error scenarios here?
         // TODO: Also make sure this is idempotent and can work even if the secret does not exist yet
-        self.client
+        let resp = self
+            .client
             .put_secret_value()
             .secret_id(&params.secret_name)
-            .set_secret_binary(Some(Blob::new(encrypted_keypair)))
+            .set_secret_binary(Some(Blob::new(encrypted_keypair.clone())))
             .send()
-            .await?;
+            .await;
+
+        if resp.is_err() {
+            self.client
+                .create_secret()
+                .name(&params.secret_name)
+                .set_secret_binary(Some(Blob::new(encrypted_keypair)))
+                .send()
+                .await?;
+        }
 
         Ok(())
     }
