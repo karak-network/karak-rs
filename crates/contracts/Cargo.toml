@@ -7,9 +7,9 @@ repository = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-alloy = { version = "0.2.1", features = ["full"] }
+alloy = { workspace = true }
 
 [dev-dependencies]
 alloy = { version = "0.2.1", features = ["node-bindings"] }
 eyre = "0.6.12"
-tokio = { version = "1.39.2", features = ["full"] }
+tokio = { workspace = true }
