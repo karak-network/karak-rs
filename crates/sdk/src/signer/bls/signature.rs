@@ -101,4 +101,3 @@ impl TryFrom<&[u8]> for Signature {
         Ok(sig)
     }
 }
-
