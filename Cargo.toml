@@ -7,3 +7,7 @@ version = "0.1.0"
 authors = ["Andalusia Labs"]
 repository = "https://github.com/karak-network/karak-rs"
 edition = "2021"
+
+[workspace.dependencies]
+alloy = { version = "0.2.1", features = ["full"] }
+tokio = { version = "1.39.2", features = ["full"] }
