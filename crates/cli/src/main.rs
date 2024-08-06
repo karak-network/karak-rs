@@ -6,7 +6,11 @@ use karak_sdk::{
         bn254::{self, G2Pubkey},
         traits::Keypair,
     },
-    keystore::{self, traits::EncryptedKeystore},
+    keystore::{
+        self,
+        aws::AwsKeystoreParams,
+        traits::{AsyncEncryptedKeystore, EncryptedKeystore},
+    },
     signer::{
         bls::{self, keypair_signer::verify_signature, signature::Signature},
         traits::Signer,
@@ -41,9 +45,13 @@ enum Commands {
         #[arg(short = 'e', long, value_enum)]
         message_encoding: Encoding,
 
-        /// Path to BN254 keypair
+        /// Keystore to retrieve the keypair
+        #[arg(long)]
+        keystore: Keystore,
+
+        /// Keypair to retrieve
         #[arg(short, long)]
-        keypair: PathBuf,
+        keypair: String,
 
         /// Passphrase to decrypt keypair
         #[arg(short, long)]
@@ -96,6 +104,12 @@ enum Encoding {
     Base58,
 }
 
+#[derive(Clone, ValueEnum, Debug)]
+enum Keystore {
+    Local,
+    Aws,
+}
+
 #[derive(Subcommand)]
 enum KeypairSubcommands {
     /// Generate a new keypair
@@ -104,9 +118,9 @@ enum KeypairSubcommands {
         #[arg(short, long, value_enum)]
         curve: Curve,
 
-        /// File path to save the keypair
+        /// Keystore to save the keypair
         #[arg(short, long)]
-        output: PathBuf,
+        keystore: Keystore,
 
         /// Passphrase to encrypt keypair
         #[arg(short, long)]
@@ -118,9 +132,13 @@ enum KeypairSubcommands {
         #[arg(short, long, value_enum)]
         curve: Curve,
 
-        /// File path to load the keypair
+        /// Keystore to retrieve the keypair
+        #[arg(short = 's', long)]
+        keystore: Keystore,
+
+        /// Keypair to retrieve
         #[arg(short, long)]
-        keypair: PathBuf,
+        keypair: String,
 
         /// Passphrase to decrypt keypair
         #[arg(short, long)]
@@ -128,14 +146,15 @@ enum KeypairSubcommands {
     },
 }
 
-fn main() -> color_eyre::Result<()> {
+#[tokio::main]
+async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let cli = Cli::parse();
     match cli.command {
         Commands::Keypair { subcommand } => match subcommand {
             KeypairSubcommands::Generate {
                 curve,
-                output,
+                keystore,
                 passphrase,
             } => {
                 println!("Generating new keypair for curve: {:?}", curve);
@@ -144,44 +163,88 @@ fn main() -> color_eyre::Result<()> {
                         let keypair = bn254::Keypair::generate();
                         println!("Generated BN254 keypair with public key: {keypair}");
 
-                        if let Some(parent) = output.parent() {
-                            fs::create_dir_all(parent)?;
-                        }
-
-                        fs::File::create(&output)?;
-
                         let passphrase = match passphrase {
                             Some(passphrase) => passphrase,
                             None => rpassword::prompt_password("Enter keypair passphrase: ")?,
                         };
 
-                        let local_keystore =
-                            keystore::local::LocalEncryptedKeystore::new(output.clone());
-                        local_keystore.store(&keypair, &passphrase)?;
+                        match keystore {
+                            Keystore::Local => {
+                                let output = PathBuf::from(format!("{keypair}.bls"));
 
-                        let resolved_path = output.canonicalize()?;
-                        let resolved_path_str =
-                            resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
-                        println!("Saved keypair to {resolved_path_str}");
+                                if let Some(parent) = output.parent() {
+                                    fs::create_dir_all(parent)?;
+                                }
+
+                                fs::File::create(&output)?;
+
+                                let local_keystore =
+                                    keystore::local::LocalEncryptedKeystore::new(output.clone());
+                                local_keystore.store(&keypair, &passphrase)?;
+
+                                let resolved_path = output.canonicalize()?;
+                                let resolved_path_str =
+                                    resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
+                                println!("Saved keypair to {resolved_path_str}");
+                            }
+                            Keystore::Aws => {
+                                let config = aws_config::load_from_env().await;
+                                let aws_keystore =
+                                    keystore::aws::AwsEncryptedKeystore::new(&config);
+
+                                let secret_name = format!("{keypair}.bls");
+
+                                aws_keystore
+                                    .store(
+                                        &keypair,
+                                        &passphrase,
+                                        &AwsKeystoreParams {
+                                            secret_name: secret_name.clone(),
+                                        },
+                                    )
+                                    .await?;
+
+                                println!("Saved keypair to {secret_name} in AWS Secrets Manager");
+                            }
+                        }
                     }
                 }
             }
             KeypairSubcommands::Pubkey {
                 curve,
+                keystore,
                 keypair,
                 passphrase,
             } => match curve {
                 Curve::Bn254 => {
-                    let local_keystore = keystore::local::LocalEncryptedKeystore::new(keypair);
-
                     let passphrase = match passphrase {
                         Some(passphrase) => passphrase,
                         None => rpassword::prompt_password("Enter keypair passphrase: ")?,
                     };
 
-                    let keypair: bn254::Keypair = local_keystore.retrieve(&passphrase)?;
+                    match keystore {
+                        Keystore::Local => {
+                            let local_keystore = keystore::local::LocalEncryptedKeystore::new(
+                                PathBuf::from(keypair),
+                            );
 
-                    println!("Public Key: {keypair}");
+                            let keypair: bn254::Keypair = local_keystore.retrieve(&passphrase)?;
+
+                            println!("Public Key (retrieved from local keystore): {keypair}");
+                        }
+                        Keystore::Aws => {
+                            let config = aws_config::load_from_env().await;
+                            let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
+
+                            let secret_name = format!("{keypair}.bls");
+
+                            let keypair: bn254::Keypair = aws_keystore
+                                .retrieve(&passphrase, &AwsKeystoreParams { secret_name })
+                                .await?;
+
+                            println!("Public Key (retrieved from AWS Secrets Manager): {keypair}");
+                        }
+                    }
                 }
             },
         },
@@ -189,6 +252,7 @@ fn main() -> color_eyre::Result<()> {
             scheme,
             message,
             message_encoding,
+            keystore,
             keypair,
             passphrase,
         } => match scheme {
@@ -219,8 +283,24 @@ fn main() -> color_eyre::Result<()> {
                     None => rpassword::prompt_password("Enter keypair passphrase: ")?,
                 };
 
-                let keypair: bn254::Keypair =
-                    keystore::local::LocalEncryptedKeystore::new(keypair).retrieve(&passphrase)?;
+                let keypair: bn254::Keypair = {
+                    match keystore {
+                        Keystore::Local => {
+                            let local_keystore = keystore::local::LocalEncryptedKeystore::new(
+                                PathBuf::from(keypair),
+                            );
+                            local_keystore.retrieve(&passphrase)?
+                        }
+                        Keystore::Aws => {
+                            let config = aws_config::load_from_env().await;
+                            let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
+                            let secret_name = format!("{keypair}.bls");
+                            aws_keystore
+                                .retrieve(&passphrase, &AwsKeystoreParams { secret_name })
+                                .await?
+                        }
+                    }
+                };
 
                 println!("Signing with BN254 keypair: {keypair}");
 
