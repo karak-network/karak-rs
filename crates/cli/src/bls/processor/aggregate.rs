@@ -2,8 +2,8 @@ use std::str::FromStr;
 
 use color_eyre::eyre;
 use karak_sdk::{
-    keypair::bn254::{G2Pubkey, PublicKeyError},
-    signer::bls::signature::{Signature, SignatureError},
+    keypair::bn254::{algebra::AlgebraError, G2Pubkey},
+    signer::bls::signature::Signature,
 };
 
 pub enum AggregateParams {
@@ -17,7 +17,7 @@ pub fn process_aggregate(params: AggregateParams) -> eyre::Result<()> {
             let signatures: Vec<Signature> = signatures
                 .iter()
                 .map(|signature| Signature::from_str(signature))
-                .collect::<Result<Vec<Signature>, SignatureError>>()?;
+                .collect::<Result<Vec<Signature>, AlgebraError>>()?;
 
             let agg_signature: Signature = signatures.iter().sum();
 
@@ -29,7 +29,7 @@ pub fn process_aggregate(params: AggregateParams) -> eyre::Result<()> {
             let pubkeys: Vec<G2Pubkey> = pubkeys
                 .iter()
                 .map(|pubkey| G2Pubkey::from_str(pubkey))
-                .collect::<Result<Vec<G2Pubkey>, PublicKeyError>>()?;
+                .collect::<Result<Vec<G2Pubkey>, AlgebraError>>()?;
 
             let agg_key: G2Pubkey = pubkeys.iter().sum();
 

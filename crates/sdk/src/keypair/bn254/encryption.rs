@@ -21,7 +21,7 @@ impl Encryptable for Keypair {
     type EncryptionError = KeypairEncryptionError;
 
     fn encrypt(&self, passphrase: &str) -> Result<Vec<u8>, KeypairEncryptionError> {
-        let serialized_keypair: Vec<u8> = self.try_into()?;
+        let serialized_keypair = self.to_bytes()?;
         // TODO: I kept the scrypt_log_n parameter to 15 here but this is orders of magnitude less secure than the geth keystore value of 18
         //       This is in the interest of testing speed for now but we should update it later once we finalize the params
         let encrypted_keypair =
