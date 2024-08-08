@@ -307,8 +307,7 @@ async fn main() -> color_eyre::Result<()> {
                 let signer = bls::keypair_signer::KeypairSigner::from(keypair);
 
                 let signature = signer.sign_message(&hash_buffer)?;
-                let bs58_encoded_signature = bs58::encode(signature).into_string();
-                println!("Signature: {bs58_encoded_signature}");
+                println!("Signature: {signature}");
             }
         },
         Commands::SigVerify {
