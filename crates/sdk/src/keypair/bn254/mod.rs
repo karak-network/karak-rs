@@ -11,6 +11,7 @@ use thiserror::Error;
 
 use super::traits::Keypair as KeypairTrait;
 
+pub mod algebra;
 mod encryption;
 mod pubkey;
 pub use encryption::*;
@@ -48,30 +49,6 @@ impl CanonicalSerialize for Keypair {
     }
 }
 
-impl TryFrom<Keypair> for Vec<u8> {
-    type Error = KeypairError;
-
-    fn try_from(value: Keypair) -> Result<Self, Self::Error> {
-        let mut bytes = vec![];
-
-        value.serialize_with_mode(&mut bytes, Compress::No)?;
-
-        Ok(bytes)
-    }
-}
-
-impl TryFrom<&Keypair> for Vec<u8> {
-    type Error = KeypairError;
-
-    fn try_from(value: &Keypair) -> Result<Self, Self::Error> {
-        let mut bytes = vec![];
-
-        value.serialize_with_mode(&mut bytes, Compress::No)?;
-
-        Ok(bytes)
-    }
-}
-
 impl CanonicalDeserialize for Keypair {
     fn deserialize_with_mode<R: ark_serialize::Read>(
         reader: R,
@@ -93,17 +70,29 @@ impl CanonicalDeserialize for Keypair {
     }
 }
 
+impl Valid for Keypair {
+    fn check(&self) -> Result<(), SerializationError> {
+        self.secret_key.check()
+    }
+}
+
+impl Keypair {
+    pub fn to_bytes(&self) -> Result<Vec<u8>, KeypairError> {
+        let mut bytes = Vec::new();
+        self.serialize_uncompressed(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, KeypairError> {
+        Ok(Keypair::deserialize_uncompressed(bytes.as_ref())?)
+    }
+}
+
 impl TryFrom<&[u8]> for Keypair {
     type Error = KeypairError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         Ok(Keypair::deserialize_uncompressed(value)?)
-    }
-}
-
-impl Valid for Keypair {
-    fn check(&self) -> Result<(), SerializationError> {
-        self.secret_key.check()
     }
 }
 
