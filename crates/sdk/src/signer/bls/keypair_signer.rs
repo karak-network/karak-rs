@@ -1,4 +1,4 @@
-use std::ops::Neg;
+use std::{borrow::Borrow, ops::Neg};
 
 use ark_bn254::{Bn254, Fq, G1Affine, G2Affine};
 use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
@@ -33,14 +33,14 @@ pub enum KeypairSignerError {
 
 pub type KeypairSignerResult<T> = Result<T, KeypairSignerError>;
 
-impl Signer<&[u8; 32]> for KeypairSigner {
+impl<B: Borrow<[u8; 32]>> Signer<B> for KeypairSigner {
     type Error = KeypairSignerError;
     type Signature = Signature;
 
     /// Caller is responsible for ensuring `hash` is a 32-byte hash of some arbitrary sized message
-    fn sign_message(&self, hash: &[u8; 32]) -> KeypairSignerResult<Signature> {
+    fn sign_message(&self, bytes: B) -> KeypairSignerResult<Signature> {
         let sk = self.keypair.secret_key();
-        let hm = hash_to_g1_point(hash);
+        let hm = hash_to_g1_point(bytes.borrow());
         // TODO: Check whether its better/worse to use the projective version of the point
         let sig = (hm * sk).into_affine();
 
@@ -48,13 +48,13 @@ impl Signer<&[u8; 32]> for KeypairSigner {
     }
 }
 
-pub fn verify_signature(
+pub fn verify_signature<B: Borrow<[u8; 32]>>(
     pubkey: &G2Pubkey,
     sig: &Signature,
-    message: &[u8; 32],
+    message: B,
 ) -> KeypairSignerResult<()> {
     let gen_g2 = G2Affine::generator();
-    let msg_point_g1 = hash_to_g1_point(message);
+    let msg_point_g1 = hash_to_g1_point(message.borrow());
 
     let neg_sig = sig.0.neg();
 
@@ -74,7 +74,7 @@ pub fn verify_signature(
 // Implements the hash-and-check algorithm
 // see https://hackmd.io/@benjaminion/bls12-381#Hash-and-check
 // Curve: y^2 = x^3 + 3
-fn hash_to_g1_point(message: &[u8; 32]) -> G1Affine {
+pub fn hash_to_g1_point(message: &[u8]) -> G1Affine {
     // TODO: big-endian or litte-endian here?
     let mut x = Fq::from_be_bytes_mod_order(message);
 
@@ -125,10 +125,10 @@ mod tests {
         let message = [42u8; 32];
 
         let expected_signature = precomputed_signature_for_keypair();
-        let actual_signature = signer.sign_message(&message).unwrap();
+        let actual_signature = signer.sign_message(message).unwrap();
         assert_eq!(actual_signature, *expected_signature);
 
-        assert!(verify_signature(&keypair.public_key().g2, expected_signature, &message).is_ok());
+        assert!(verify_signature(&keypair.public_key().g2, expected_signature, message).is_ok());
     }
 
     #[test]
@@ -137,9 +137,9 @@ mod tests {
         let signer = KeypairSigner::from(keypair.clone());
         let message = [42u8; 32];
 
-        let signature = signer.sign_message(&message).unwrap();
+        let signature = signer.sign_message(message).unwrap();
 
-        assert!(verify_signature(&keypair.public_key().g2, &signature, &message).is_ok());
+        assert!(verify_signature(&keypair.public_key().g2, &signature, message).is_ok());
     }
 
     #[test]
@@ -149,10 +149,10 @@ mod tests {
         let signer = KeypairSigner::from(keypair.clone());
         let message = [42u8; 32];
 
-        let signature = signer.sign_message(&message).unwrap();
+        let signature = signer.sign_message(message).unwrap();
 
         assert!(matches!(
-            verify_signature(&other_keypair.public_key().g2, &signature, &message),
+            verify_signature(&other_keypair.public_key().g2, &signature, message),
             Err(KeypairSignerError::InvalidSignature)
         ));
     }
@@ -169,7 +169,7 @@ mod tests {
         let signatures: Vec<_> = signers
             .iter()
             .take(3)
-            .map(|signer| signer.sign_message(&message).unwrap())
+            .map(|signer| signer.sign_message(message).unwrap())
             .collect();
 
         let combined_sig = signatures.iter().sum();
@@ -177,7 +177,7 @@ mod tests {
         // Combine public keys
         let combined_pubkey = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
 
-        assert!(verify_signature(&combined_pubkey, &combined_sig, &message).is_ok());
+        assert!(verify_signature(&combined_pubkey, &combined_sig, message).is_ok());
     }
 
     #[test]
@@ -192,7 +192,7 @@ mod tests {
         let signatures: Vec<_> = signers
             .iter()
             .take(2) // Only sign with the first two keypairs
-            .map(|signer| signer.sign_message(&message).unwrap())
+            .map(|signer| signer.sign_message(message).unwrap())
             .collect();
 
         let combined_sig = signatures.iter().sum();
@@ -201,7 +201,7 @@ mod tests {
         let combined_pubkey = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
 
         assert!(matches!(
-            verify_signature(&combined_pubkey, &combined_sig, &message),
+            verify_signature(&combined_pubkey, &combined_sig, message),
             Err(KeypairSignerError::InvalidSignature)
         ));
     }
@@ -213,17 +213,17 @@ mod tests {
         let message1 = [1u8; 32];
         let message2 = [2u8; 32];
 
-        let signature1 = signer.sign_message(&message1).unwrap();
-        let signature2 = signer.sign_message(&message2).unwrap();
+        let signature1 = signer.sign_message(message1).unwrap();
+        let signature2 = signer.sign_message(message2).unwrap();
 
-        assert!(verify_signature(&keypair.public_key().g2, &signature1, &message1).is_ok());
-        assert!(verify_signature(&keypair.public_key().g2, &signature2, &message2).is_ok());
+        assert!(verify_signature(&keypair.public_key().g2, &signature1, message1).is_ok());
+        assert!(verify_signature(&keypair.public_key().g2, &signature2, message2).is_ok());
         assert!(matches!(
-            verify_signature(&keypair.public_key().g2, &signature1, &message2),
+            verify_signature(&keypair.public_key().g2, &signature1, message2),
             Err(KeypairSignerError::InvalidSignature)
         ));
         assert!(matches!(
-            verify_signature(&keypair.public_key().g2, &signature2, &message1),
+            verify_signature(&keypair.public_key().g2, &signature2, message1),
             Err(KeypairSignerError::InvalidSignature)
         ));
     }

@@ -29,3 +29,6 @@ aws-sdk-secretsmanager = "1.40.0"
 tokio = { workspace = true }
 alloy-sol-types = "0.7.7"
 
+[dev-dependencies]
+alloy = { workspace = true, features = ["node-bindings"] }
+
