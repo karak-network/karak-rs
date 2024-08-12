@@ -1,3 +1,4 @@
+use alloy::signers::local::{LocalSigner, PrivateKeySigner};
 use base64::Engine;
 use clap::{command, Parser, Subcommand, ValueEnum};
 use color_eyre::eyre::eyre;
@@ -87,6 +88,8 @@ enum Commands {
 enum Curve {
     /// BN254 (also known as alt_bn128) is the curve used in Ethereum for BLS aggregation
     Bn254,
+    /// Secp256k1 is the curve used in Ethereum for ECDSA signatures
+    Secp256k1,
 }
 
 #[derive(Clone, ValueEnum, Debug)]
@@ -138,7 +141,7 @@ enum KeypairSubcommands {
 
         /// Keypair to retrieve
         #[arg(short, long)]
-        keypair: String,
+        keypair: Option<String>,
 
         /// Passphrase to decrypt keypair
         #[arg(short, long)]
@@ -208,6 +211,43 @@ async fn main() -> color_eyre::Result<()> {
                             }
                         }
                     }
+                    Curve::Secp256k1 => match keystore {
+                        Keystore::Local => {
+                            let password = match passphrase {
+                                Some(passphrase) => passphrase,
+                                None => rpassword::prompt_password("Enter keypair passphrase: ")?,
+                            };
+                            let mut rng = rand::thread_rng();
+                            let private_key = PrivateKeySigner::random();
+                            println!(
+                                "Generated secp256k1 keypair with address: {}",
+                                private_key.address()
+                            );
+
+                            let keypath = dirs_next::home_dir()
+                                .ok_or(eyre!("Could not find home directory"))?
+                                .join(".config")
+                                .join("karak");
+                            fs::create_dir_all(&keypath)?;
+                            let filename = "secp256k1.json";
+                            let fullpath = keypath.join(filename);
+                            LocalSigner::encrypt_keystore(
+                                keypath,
+                                &mut rng,
+                                private_key.to_bytes(),
+                                password,
+                                Some(filename),
+                            )?;
+                            let resolved_path = fullpath.canonicalize()?;
+                            let resolved_path_str =
+                                resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
+                            println!("Saved keypair to {resolved_path_str}");
+                        }
+                        Keystore::Aws => {
+                            // TODO: Implement
+                            unimplemented!();
+                        }
+                    },
                 }
             }
             KeypairSubcommands::Pubkey {
@@ -224,9 +264,17 @@ async fn main() -> color_eyre::Result<()> {
 
                     match keystore {
                         Keystore::Local => {
-                            let local_keystore = keystore::local::LocalEncryptedKeystore::new(
-                                PathBuf::from(keypair),
-                            );
+                            let keypair = match keypair {
+                                Some(keypair) => PathBuf::from_str(&keypair)?,
+                                None => dirs_next::home_dir()
+                                    .ok_or(eyre!("Could not find home directory"))?
+                                    .join(".config")
+                                    .join("karak")
+                                    .join("keypair.bls"),
+                            };
+
+                            let local_keystore =
+                                keystore::local::LocalEncryptedKeystore::new(keypair);
 
                             let keypair: bn254::Keypair = local_keystore.retrieve(&passphrase)?;
 
@@ -236,6 +284,7 @@ async fn main() -> color_eyre::Result<()> {
                             let config = aws_config::load_from_env().await;
                             let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
 
+                            let keypair = keypair.ok_or(eyre!("Keypair name is required"))?;
                             let secret_name = format!("{keypair}.bls");
 
                             let keypair: bn254::Keypair = aws_keystore
@@ -246,6 +295,32 @@ async fn main() -> color_eyre::Result<()> {
                         }
                     }
                 }
+                Curve::Secp256k1 => match keystore {
+                    Keystore::Local => {
+                        let password = match passphrase {
+                            Some(passphrase) => passphrase,
+                            None => rpassword::prompt_password("Enter keypair passphrase: ")?,
+                        };
+                        let keypath = match keypair {
+                            Some(keypair) => PathBuf::from_str(&keypair)?,
+                            None => dirs_next::home_dir()
+                                .ok_or(eyre!("Could not find home directory"))?
+                                .join(".config")
+                                .join("karak")
+                                .join("secp256k1.json"),
+                        };
+
+                        let private_key = LocalSigner::decrypt_keystore(keypath, password)?;
+                        println!(
+                            "Public Key (retrieved from local keystore): {}",
+                            private_key.address()
+                        );
+                    }
+                    Keystore::Aws => {
+                        // TODO: Implement
+                        unimplemented!();
+                    }
+                },
             },
         },
         Commands::Sign {
