@@ -1,20 +1,24 @@
 use std::{
     fmt::Display,
     iter::Sum,
-    ops::{Add, Sub},
+    ops::{Add, Neg, Sub},
     str::FromStr,
 };
 
 use ark_bn254::{G1Affine, G1Projective};
-use ark_ec::CurveGroup;
+use ark_ec::{AffineRepr, CurveGroup};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 use super::AlgebraError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, CanonicalSerialize, CanonicalDeserialize)]
-pub struct G1Point(pub(crate) G1Affine);
+pub struct G1Point(pub G1Affine);
 
 impl G1Point {
+    pub fn generator() -> Self {
+        G1Point(G1Affine::generator())
+    }
+
     pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, AlgebraError> {
         Ok(G1Point::deserialize_compressed(bytes.as_ref())?)
     }
@@ -81,6 +85,14 @@ impl Sub for G1Point {
 
     fn sub(self, rhs: Self) -> Self::Output {
         G1Point((self.0 - rhs.0).into())
+    }
+}
+
+impl Neg for G1Point {
+    type Output = G1Point;
+
+    fn neg(self) -> Self::Output {
+        G1Point(self.0.neg())
     }
 }
 
