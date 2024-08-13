@@ -14,4 +14,7 @@ pub enum Root {
     /// Perform BLS operation
     #[command(subcommand)]
     BLS(BLS),
+    /// Operator management
+    #[command(subcommand)]
+    Operator,
 }

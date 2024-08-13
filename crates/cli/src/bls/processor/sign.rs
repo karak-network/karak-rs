@@ -72,7 +72,7 @@ pub async fn process_sign(
 
     let signer = bls::keypair_signer::KeypairSigner::from(keypair);
 
-    let signature = signer.sign_message(&hash_buffer)?;
+    let signature = signer.sign_message(hash_buffer)?;
     println!("Signature: {signature}");
 
     Ok(())
