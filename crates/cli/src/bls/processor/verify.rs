@@ -1,13 +1,12 @@
 use std::str::FromStr;
 
-use base64::Engine;
 use karak_sdk::{
     keypair::bn254::G2Pubkey,
     signer::bls::{keypair_signer::verify_signature, signature::Signature},
 };
 use sha3::{Digest, Keccak256};
 
-use crate::{bls::MessageArgs, shared::Encoding};
+use crate::bls::MessageArgs;
 
 pub fn process_verify(
     message_args: MessageArgs,
@@ -19,13 +18,7 @@ pub fn process_verify(
         message_encoding,
     } = message_args;
 
-    let message_bytes = match message_encoding {
-        Encoding::Utf8 => message.as_bytes().to_vec(),
-        Encoding::Hex => hex::decode(message)?,
-        Encoding::Base64 => base64::engine::general_purpose::STANDARD.decode(message)?,
-        Encoding::Base64URL => base64::engine::general_purpose::URL_SAFE.decode(message)?,
-        Encoding::Base58 => bs58::decode(message).into_vec()?,
-    };
+    let message_bytes = message_encoding.decode(&message)?;
 
     // We Keccak256 hash the message to a 32 bytes hash
 

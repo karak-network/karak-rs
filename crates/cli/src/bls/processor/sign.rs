@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use base64::Engine;
 use karak_sdk::{
     keypair::bn254,
     keystore::{
@@ -15,7 +14,7 @@ use sha3::{Digest, Keccak256};
 use crate::{
     bls::MessageArgs,
     keypair::{KeypairArgs, KeypairLocationArgs},
-    shared::{Encoding, Keystore},
+    shared::Keystore,
 };
 
 pub async fn process_sign(
@@ -34,13 +33,7 @@ pub async fn process_sign(
         message_encoding,
     } = message;
 
-    let message_bytes = match message_encoding {
-        Encoding::Utf8 => message.as_bytes().to_vec(),
-        Encoding::Hex => hex::decode(message)?,
-        Encoding::Base64 => base64::engine::general_purpose::STANDARD.decode(message)?,
-        Encoding::Base64URL => base64::engine::general_purpose::URL_SAFE.decode(message)?,
-        Encoding::Base58 => bs58::decode(message).into_vec()?,
-    };
+    let message_bytes = message_encoding.decode(&message)?;
 
     // We Keccak256 hash the message to a 32 bytes hash
 
