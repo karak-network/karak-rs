@@ -3,12 +3,13 @@ pub mod sign;
 pub mod verify;
 
 use aggregate::{process_aggregate, AggregateParams};
+use color_eyre::eyre;
 use sign::process_sign;
 use verify::process_verify;
 
 use super::{Aggregate, BLS};
 
-pub async fn process(command: BLS) -> color_eyre::Result<()> {
+pub async fn process(command: BLS) -> eyre::Result<()> {
     match command {
         BLS::Sign {
             keypair_location,

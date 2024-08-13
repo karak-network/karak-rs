@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use color_eyre::eyre;
 use karak_sdk::{
     keypair::bn254,
     keystore::{
@@ -21,7 +22,7 @@ pub async fn process_sign(
     keypair_location: KeypairLocationArgs,
     keypair: KeypairArgs,
     message: MessageArgs,
-) -> color_eyre::Result<()> {
+) -> eyre::Result<()> {
     let KeypairArgs {
         keystore,
         passphrase,

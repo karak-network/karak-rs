@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use color_eyre::eyre;
 use karak_sdk::{
     keypair::bn254::{G2Pubkey, PublicKeyError},
     signer::bls::signature::{Signature, SignatureError},
@@ -10,7 +11,7 @@ pub enum AggregateParams {
     Pubkeys(Vec<String>),
 }
 
-pub fn process_aggregate(params: AggregateParams) -> color_eyre::Result<()> {
+pub fn process_aggregate(params: AggregateParams) -> eyre::Result<()> {
     match params {
         AggregateParams::Signatures(signatures) => {
             let signatures: Vec<Signature> = signatures

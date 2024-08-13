@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use color_eyre::eyre;
 use karak_sdk::{
     keypair::bn254::G2Pubkey,
     signer::bls::{keypair_signer::verify_signature, signature::Signature},
@@ -12,7 +13,7 @@ pub fn process_verify(
     message_args: MessageArgs,
     pubkey: String,
     signature: String,
-) -> color_eyre::Result<()> {
+) -> eyre::Result<()> {
     let MessageArgs {
         message,
         message_encoding,
