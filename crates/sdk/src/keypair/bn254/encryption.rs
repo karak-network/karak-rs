@@ -1,4 +1,4 @@
-use super::{Keypair, KeypairError};
+use super::{Bn254Error, Keypair};
 use crate::{
     encryption::{self, EncryptDataV3Error},
     keypair::traits::Encryptable,
@@ -8,7 +8,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum KeypairEncryptionError {
     #[error("Keypair error: {0}")]
-    KeypairError(#[from] KeypairError),
+    KeypairError(#[from] Bn254Error),
 
     #[error("Encryption error: {0}")]
     EncryptionError(#[from] EncryptDataV3Error),

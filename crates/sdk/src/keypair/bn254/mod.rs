@@ -24,14 +24,16 @@ pub struct Keypair {
 }
 
 #[derive(Debug, Error)]
-pub enum KeypairError {
+pub enum Bn254Error {
     #[error("Serialization error: {0}")]
     SerializationError(SerializationError),
+    #[error("Decoding error: {0}")]
+    DecodingError(#[from] bs58::decode::Error),
 }
 
-impl From<SerializationError> for KeypairError {
-    fn from(value: SerializationError) -> Self {
-        Self::SerializationError(value)
+impl From<SerializationError> for Bn254Error {
+    fn from(error: SerializationError) -> Self {
+        Bn254Error::SerializationError(error)
     }
 }
 
@@ -77,19 +79,19 @@ impl Valid for Keypair {
 }
 
 impl Keypair {
-    pub fn to_bytes(&self) -> Result<Vec<u8>, KeypairError> {
+    pub fn to_bytes(&self) -> Result<Vec<u8>, Bn254Error> {
         let mut bytes = Vec::new();
         self.serialize_uncompressed(&mut bytes)?;
         Ok(bytes)
     }
 
-    pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, KeypairError> {
+    pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, Bn254Error> {
         Ok(Keypair::deserialize_uncompressed(bytes.as_ref())?)
     }
 }
 
 impl TryFrom<&[u8]> for Keypair {
-    type Error = KeypairError;
+    type Error = Bn254Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         Ok(Keypair::deserialize_uncompressed(value)?)

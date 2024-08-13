@@ -9,7 +9,7 @@ use ark_bn254::{G2Affine, G2Projective};
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
-use super::AlgebraError;
+use crate::keypair::bn254::Bn254Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, CanonicalSerialize, CanonicalDeserialize)]
 pub struct G2Point(pub G2Affine);
@@ -19,11 +19,11 @@ impl G2Point {
         G2Point(G2Affine::generator())
     }
 
-    pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, AlgebraError> {
+    pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, Bn254Error> {
         Ok(G2Point::deserialize_compressed(bytes.as_ref())?)
     }
 
-    pub fn to_bytes(&self) -> Result<Vec<u8>, AlgebraError> {
+    pub fn to_bytes(&self) -> Result<Vec<u8>, Bn254Error> {
         let mut bytes = Vec::new();
         self.serialize_compressed(&mut bytes)?;
         Ok(bytes)
@@ -31,7 +31,7 @@ impl G2Point {
 }
 
 impl TryFrom<&[u8]> for G2Point {
-    type Error = AlgebraError;
+    type Error = Bn254Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         Ok(G2Point::deserialize_compressed(bytes)?)
@@ -97,7 +97,7 @@ impl Neg for G2Point {
 }
 
 impl FromStr for G2Point {
-    type Err = AlgebraError;
+    type Err = Bn254Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         G2Point::from_bytes(bs58::decode(s).into_vec()?)
