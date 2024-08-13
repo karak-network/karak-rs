@@ -26,7 +26,7 @@ pub fn process_aggregate(params: AggregateParams) -> color_eyre::Result<()> {
             let pubkeys: Vec<G2Pubkey> = pubkeys
                 .iter()
                 // TODO: Clean up this unwrap
-                .map(|pubkey| G2Pubkey::from_str(pubkey).unwrap().into())
+                .map(|pubkey| G2Pubkey::from_str(pubkey).unwrap())
                 .collect();
 
             let agg_key: G2Pubkey = pubkeys.iter().sum();
