@@ -97,14 +97,26 @@ enum Commands {
         #[arg(short, long)]
         dss: Address,
 
-        #[arg(short, long)]
+        #[arg(long)]
         message: String,
 
-        #[arg(short, long)]
+        #[arg(long)]
         message_encoding: Encoding,
 
         #[arg(short, long)]
         core_address: Address,
+
+        /// Keystore to retrieve the keypair
+        #[arg(short, long)]
+        keystore: Keystore,
+
+        /// BN254 Keypair to retrieve
+        #[arg(short, long)]
+        bn254_keypair: Option<String>,
+
+        /// Secp256k1 Keypair to retrieve
+        #[arg(short, long)]
+        secp256k1_keypair: Option<String>,
     },
 }
 
@@ -467,54 +479,72 @@ async fn main() -> color_eyre::Result<()> {
             message,
             message_encoding,
             core_address,
-        } => {
-            let bn254_keypair_path = dirs_next::home_dir()
-                .ok_or(eyre!("Could not find home directory"))?
-                .join(".config")
-                .join("karak")
-                .join("bn254.json");
-            let secp256k1_keypair_path = dirs_next::home_dir()
-                .ok_or(eyre!("Could not find home directory"))?
-                .join(".config")
-                .join("karak")
-                .join("secp256k1.json");
-            let passphrase =
-                rpassword::prompt_password("Enter keypair passphrase for your BN254 keypair: ")?;
-            let bn254_keypair: bn254::Keypair =
-                LocalEncryptedKeystore::new(bn254_keypair_path).retrieve(&passphrase)?;
-            let passphrase = rpassword::prompt_password(
-                "Enter keypair passphrase for your secp256k1 keypair: ",
-            )?;
-            let secp256k1_keypair =
-                LocalSigner::decrypt_keystore(secp256k1_keypair_path, passphrase)?;
+            keystore,
+            bn254_keypair,
+            secp256k1_keypair,
+        } => match keystore {
+            Keystore::Local => {
+                let bn254_keypair_path = match &bn254_keypair {
+                    Some(keypair) => PathBuf::from_str(keypair)?,
+                    None => dirs_next::home_dir()
+                        .ok_or(eyre!("Could not find home directory"))?
+                        .join(".config")
+                        .join("karak")
+                        .join("bn254.json"),
+                };
+                let secp256k1_keypair_path = match &secp256k1_keypair {
+                    Some(keypair) => PathBuf::from_str(keypair)?,
+                    None => dirs_next::home_dir()
+                        .ok_or(eyre!("Could not find home directory"))?
+                        .join(".config")
+                        .join("karak")
+                        .join("secp256k1.json"),
+                };
+                let passphrase = rpassword::prompt_password(
+                    "Enter keypair passphrase for your BN254 keypair: ",
+                )?;
+                let bn254_keypair: bn254::Keypair =
+                    LocalEncryptedKeystore::new(bn254_keypair_path).retrieve(&passphrase)?;
+                let passphrase = rpassword::prompt_password(
+                    "Enter keypair passphrase for your secp256k1 keypair: ",
+                )?;
+                let secp256k1_keypair =
+                    LocalSigner::decrypt_keystore(secp256k1_keypair_path, passphrase)?;
 
-            let message_bytes = match message_encoding {
-                Encoding::Utf8 => message.as_bytes().to_vec(),
-                Encoding::Hex => hex::decode(message)?,
-                Encoding::Base64 => base64::engine::general_purpose::STANDARD.decode(message)?,
-                Encoding::Base64URL => base64::engine::general_purpose::URL_SAFE.decode(message)?,
-                Encoding::Base58 => bs58::decode(message).into_vec()?,
-            };
-            let msg_hash = FixedBytes::<32>::from_slice(&message_bytes);
-            let signer = bls::keypair_signer::KeypairSigner::from(bn254_keypair.clone());
-            let signature = signer.sign_message(msg_hash)?;
+                let message_bytes = match message_encoding {
+                    Encoding::Utf8 => message.as_bytes().to_vec(),
+                    Encoding::Hex => hex::decode(message)?,
+                    Encoding::Base64 => {
+                        base64::engine::general_purpose::STANDARD.decode(message)?
+                    }
+                    Encoding::Base64URL => {
+                        base64::engine::general_purpose::URL_SAFE.decode(message)?
+                    }
+                    Encoding::Base58 => bs58::decode(message).into_vec()?,
+                };
+                let msg_hash = FixedBytes::<32>::from_slice(&message_bytes);
+                let signer = bls::keypair_signer::KeypairSigner::from(bn254_keypair.clone());
+                let signature = signer.sign_message(msg_hash)?;
 
-            let registration = BlsRegistration {
-                g1_pubkey: bn254_keypair.public_key().g1,
-                g2_pubkey: bn254_keypair.public_key().g2,
-                msg_hash,
-                signature,
-            };
+                let registration = BlsRegistration {
+                    g1_pubkey: bn254_keypair.public_key().g1,
+                    g2_pubkey: bn254_keypair.public_key().g2,
+                    msg_hash,
+                    signature,
+                };
 
-            let wallet = EthereumWallet::from(secp256k1_keypair);
-            let provider = alloy::providers::ProviderBuilder::new()
-                .with_recommended_fillers()
-                .wallet(wallet)
-                .on_http(cli.rpc_url.clone());
-            let core = karak_contracts::Core::CoreInstance::new(core_address, provider);
-            core.register_operator_to_dss_with_bls(dss, &registration)
-                .await?;
-        }
+                let wallet = EthereumWallet::from(secp256k1_keypair);
+                let provider = alloy::providers::ProviderBuilder::new()
+                    .with_recommended_fillers()
+                    .wallet(wallet)
+                    .on_http(cli.rpc_url.clone());
+                let core = karak_contracts::Core::CoreInstance::new(core_address, provider);
+                core.register_operator_to_dss_with_bls(dss, &registration)
+                    .await?;
+            }
+            // TODO: Implement
+            Keystore::Aws => unimplemented!(),
+        },
     }
 
     Ok(())
