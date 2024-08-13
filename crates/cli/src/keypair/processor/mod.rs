@@ -1,12 +1,13 @@
 pub mod generate;
 pub mod pubkey;
 
+use color_eyre::eyre;
 use generate::process_generate;
 use pubkey::process_pubkey;
 
 use super::Keypair;
 
-pub async fn process(command: Keypair) -> color_eyre::Result<()> {
+pub async fn process(command: Keypair) -> eyre::Result<()> {
     match command {
         Keypair::Generate {
             keypair: keypair_args,

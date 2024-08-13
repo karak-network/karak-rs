@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use color_eyre::eyre::eyre;
+use color_eyre::eyre::{self, eyre};
 use karak_sdk::{
     keypair::{bn254, traits::Keypair},
     keystore::{
@@ -15,7 +15,7 @@ use crate::{
     shared::{Curve, Keystore},
 };
 
-pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> color_eyre::Result<()> {
+pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::Result<()> {
     let KeypairArgs {
         keystore,
         passphrase,
