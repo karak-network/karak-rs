@@ -559,11 +559,6 @@
         "name": "dss",
         "type": "address",
         "internalType": "contract IDSS"
-      },
-      {
-        "name": "unregistationHookData",
-        "type": "bytes",
-        "internalType": "bytes"
       }
     ],
     "outputs": [],
