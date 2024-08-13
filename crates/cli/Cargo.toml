@@ -18,6 +18,7 @@ dirs-next = "2.0.0"
 hex = "0.4.3"
 karak-contracts = { path = "../contracts" }
 karak-sdk = { path = "../sdk" }
+rand = "0.8.5"
 rpassword = "7.3"
 sha3 = "0.10"
 thiserror = "1.0.63"

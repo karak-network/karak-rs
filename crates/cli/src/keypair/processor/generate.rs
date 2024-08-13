@@ -1,5 +1,6 @@
 use std::{fs, path::PathBuf};
 
+use alloy::signers::local::{LocalSigner, PrivateKeySigner};
 use color_eyre::eyre::{self, eyre};
 use karak_sdk::{
     keypair::{bn254, traits::Keypair},
@@ -50,8 +51,6 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
                     let resolved_path_str =
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
-
-                    Ok(())
                 }
                 Keystore::Aws => {
                     let config = aws_config::load_from_env().await;
@@ -70,10 +69,49 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
                         .await?;
 
                     println!("Saved keypair to {secret_name} in AWS Secrets Manager");
+                }
+            }
+        }
+        Curve::Secp256k1 => {
+            let private_key = PrivateKeySigner::random();
+            println!(
+                "Generated SECP256k1 keypair with address: {}",
+                private_key.address()
+            );
+            let mut rng = rand::thread_rng();
+            let passphrase = match passphrase {
+                Some(passphrase) => passphrase,
+                None => rpassword::prompt_password("Enter keypair passphrase: ")?,
+            };
+            match keystore {
+                Keystore::Local => {
+                    let keypath = dirs_next::home_dir()
+                        .ok_or(eyre!("Home directory not found"))?
+                        .join(".config")
+                        .join("karak");
+                    let filename = "secp256k1.json";
 
-                    Ok(())
+                    fs::create_dir_all(&keypath)?;
+
+                    let resolved_path = keypath.join(filename).canonicalize()?;
+
+                    LocalSigner::encrypt_keystore(
+                        keypath,
+                        &mut rng,
+                        private_key.to_bytes(),
+                        passphrase,
+                        Some(filename),
+                    )?;
+
+                    let resolved_path_str =
+                        resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
+                    println!("Saved keypair to {resolved_path_str}");
+                }
+                Keystore::Aws => {
+                    todo!()
                 }
             }
         }
     }
+    Ok(())
 }

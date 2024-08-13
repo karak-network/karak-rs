@@ -1,5 +1,6 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
+use alloy::signers::local::LocalSigner;
 use color_eyre::eyre;
 use karak_sdk::{
     keypair::bn254,
@@ -41,8 +42,6 @@ pub async fn process_pubkey(
                     let keypair: bn254::Keypair = local_keystore.retrieve(&passphrase)?;
 
                     println!("Public Key (retrieved from local keystore): {keypair}");
-
-                    Ok(())
                 }
                 Keystore::Aws => {
                     let config = aws_config::load_from_env().await;
@@ -55,10 +54,26 @@ pub async fn process_pubkey(
                         .await?;
 
                     println!("Public Key (retrieved from AWS Secrets Manager): {keypair}");
-
-                    Ok(())
                 }
             }
         }
+        Curve::Secp256k1 => {
+            let passphrase = match passphrase {
+                Some(passphrase) => passphrase,
+                None => rpassword::prompt_password("Enter keypair passphrase: ")?,
+            };
+            match keystore {
+                Keystore::Local => {
+                    let keypath = PathBuf::from_str(&keypair)?;
+                    let private_key = LocalSigner::decrypt_keystore(keypath, passphrase)?;
+                    println!(
+                        "Address (retrieved from local keystore): {}",
+                        private_key.address()
+                    );
+                }
+                Keystore::Aws => todo!(),
+            }
+        }
     }
+    Ok(())
 }
