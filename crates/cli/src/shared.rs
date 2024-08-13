@@ -20,6 +20,7 @@ pub enum Keystore {
     Aws,
 }
 
+// TODO: Move the encoding enum to the SDK crate
 #[derive(Clone, ValueEnum, Debug)]
 pub enum Encoding {
     Utf8,
