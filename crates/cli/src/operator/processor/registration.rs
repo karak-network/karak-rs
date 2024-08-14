@@ -18,46 +18,45 @@ use karak_sdk::{
 };
 use url::Url;
 
-use crate::{
-    keypair::{KeypairArgs, KeypairLocationArgs},
-    shared::{Encoding, Keystore},
-};
+use crate::shared::{Encoding, Keystore};
 
 // TODO: Move args to a struct and remove the clippy lint
 #[allow(clippy::too_many_arguments)]
 pub async fn process_registration(
-    bn254_keypair_location: KeypairLocationArgs,
-    bn254_keypair: KeypairArgs,
-    secp256k1_keypair_location: KeypairLocationArgs,
-    secp256k1_keypair: KeypairArgs,
+    bn254_keypair_location: String,
+    bn254_keystore: Keystore,
+    bn254_passphrase: Option<String>,
+    secp256k1_keypair_location: String,
+    secp256k1_keystore: Keystore,
+    secp256k1_passphrase: Option<String>,
     rpc_url: Url,
     core_address: Address,
     dss_address: Address,
     message: String,
     message_encoding: Encoding,
 ) -> eyre::Result<()> {
-    let bn254_passphrase = match bn254_keypair.passphrase {
+    let bn254_passphrase = match bn254_passphrase {
         Some(passphrase) => passphrase,
         None => rpassword::prompt_password("Enter BN254 keypair passphrase: ")?,
     };
-    let bn254_keypair: bn254::Keypair = match bn254_keypair.keystore {
+    let bn254_keypair: bn254::Keypair = match bn254_keystore {
         Keystore::Local => {
             let local_keystore = keystore::local::LocalEncryptedKeystore::new(PathBuf::from_str(
-                &bn254_keypair_location.keypair,
+                &bn254_keypair_location,
             )?);
             local_keystore.retrieve(&bn254_passphrase)?
         }
         Keystore::Aws => todo!(),
     };
 
-    let secp256k1_passphrase = match secp256k1_keypair.passphrase {
+    let secp256k1_passphrase = match secp256k1_passphrase {
         Some(passphrase) => passphrase,
         None => rpassword::prompt_password("Enter SECP256k1 keypair passphrase: ")?,
     };
 
-    let secp256k1_keypair = match secp256k1_keypair.keystore {
+    let secp256k1_keypair = match secp256k1_keystore {
         Keystore::Local => {
-            LocalSigner::decrypt_keystore(secp256k1_keypair_location.keypair, secp256k1_passphrase)?
+            LocalSigner::decrypt_keystore(secp256k1_keypair_location, secp256k1_passphrase)?
         }
         Keystore::Aws => todo!(),
     };

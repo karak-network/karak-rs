@@ -4,24 +4,25 @@ use alloy::primitives::Address;
 use clap::Subcommand;
 use url::Url;
 
-use crate::{
-    keypair::{KeypairArgs, KeypairLocationArgs},
-    shared::Encoding,
-};
+use crate::shared::{Encoding, Keystore};
 
 #[derive(Subcommand)]
 pub enum Operator {
     /// Perform BLS registration to DSS
     Register {
-        #[command(flatten)]
-        bn254_keypair_location: KeypairLocationArgs,
-        #[command(flatten)]
-        bn254_keypair: KeypairArgs,
+        #[arg(long)]
+        bn254_keypair_location: String,
+        #[arg(long)]
+        bn254_keystore: Keystore,
+        #[arg(long)]
+        bn254_passphrase: Option<String>,
 
-        #[command(flatten)]
-        secp256k1_keypair_location: KeypairLocationArgs,
-        #[command(flatten)]
-        secp256k1_keypair: KeypairArgs,
+        #[arg(long)]
+        secp256k1_keypair_location: String,
+        #[arg(long)]
+        secp256k1_keystore: Keystore,
+        #[arg(long)]
+        secp256k1_passphrase: Option<String>,
 
         #[arg(short, long, default_value = "http://localhost:8545")]
         /// RPC endpoint
