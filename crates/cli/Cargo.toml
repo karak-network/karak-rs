@@ -25,6 +25,7 @@ thiserror = "1.0.63"
 tokio = { workspace = true }
 url = "2.5.2"
 
+
 [[bin]]
 name = "karak"
 path = "src/main.rs"

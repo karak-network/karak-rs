@@ -31,3 +31,4 @@ alloy-sol-types = "0.7.7"
 
 [dev-dependencies]
 alloy = { workspace = true, features = ["node-bindings"] }
+
