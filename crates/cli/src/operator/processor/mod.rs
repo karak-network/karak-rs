@@ -19,19 +19,19 @@ pub async fn process(command: Operator) -> eyre::Result<()> {
             message,
             message_encoding,
         } => {
-            registration::process_registration(
-                bn254_keypair_location,
-                bn254_keystore,
-                bn254_passphrase,
-                secp256k1_keypair_location,
-                secp256k1_keystore,
-                secp256k1_passphrase,
+            registration::process_registration(registration::RegistrationArgs {
+                bn254_keypair_location: &bn254_keypair_location,
+                bn254_keystore: &bn254_keystore,
+                bn254_passphrase: bn254_passphrase.as_deref(),
+                secp256k1_keypair_location: &secp256k1_keypair_location,
+                secp256k1_keystore: &secp256k1_keystore,
+                secp256k1_passphrase: secp256k1_passphrase.as_deref(),
                 rpc_url,
                 core_address,
                 dss_address,
-                message,
-                message_encoding,
-            )
+                message: &message,
+                message_encoding: &message_encoding,
+            })
             .await?
         }
     }
