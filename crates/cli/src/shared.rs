@@ -6,6 +6,9 @@ use thiserror::Error;
 pub enum Curve {
     /// BN254 (also known as alt_bn128) is the curve used in Ethereum for BLS aggregation
     Bn254,
+
+    /// secp256k1 is the curve used in Ethereum for ECDSA signatures
+    Secp256k1,
 }
 
 #[derive(Clone, ValueEnum, Debug)]
