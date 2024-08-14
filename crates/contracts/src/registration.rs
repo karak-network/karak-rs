@@ -1,5 +1,5 @@
 use alloy::{
-    primitives::{Address, Bytes},
+    primitives::{Address, Bytes, TxHash},
     providers::Provider,
     sol,
     sol_types::SolValue,
@@ -24,13 +24,13 @@ pub trait OperatorRegistration {
         &self,
         dss: Address,
         data: B,
-    ) -> eyre::Result<()>;
+    ) -> eyre::Result<TxHash>;
 
     async fn register_operator_to_dss_with_bls(
         &self,
         dss: Address,
         registration: &BlsRegistration,
-    ) -> eyre::Result<()> {
+    ) -> eyre::Result<TxHash> {
         self.register_operator_to_dss_with_data(dss, registration.abi_encode())
     }
 }
@@ -40,12 +40,13 @@ impl<T: Transport + Clone, P: Provider<T>> OperatorRegistration for CoreInstance
         &self,
         dss: Address,
         data: B,
-    ) -> eyre::Result<()> {
-        self.registerOperatorToDSS(dss, data.into())
+    ) -> eyre::Result<TxHash> {
+        let receipt = self
+            .registerOperatorToDSS(dss, data.into())
             .send()
             .await?
             .get_receipt()
             .await?;
-        Ok(())
+        Ok(receipt.transaction_hash)
     }
 }
