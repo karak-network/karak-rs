@@ -11,6 +11,7 @@ use thiserror::Error;
 
 use super::traits::Keypair as KeypairTrait;
 
+pub mod algebra;
 mod encryption;
 mod pubkey;
 pub use encryption::*;
@@ -23,14 +24,16 @@ pub struct Keypair {
 }
 
 #[derive(Debug, Error)]
-pub enum KeypairError {
+pub enum Bn254Error {
     #[error("Serialization error: {0}")]
     SerializationError(SerializationError),
+    #[error("Decoding error: {0}")]
+    DecodingError(#[from] bs58::decode::Error),
 }
 
-impl From<SerializationError> for KeypairError {
-    fn from(value: SerializationError) -> Self {
-        Self::SerializationError(value)
+impl From<SerializationError> for Bn254Error {
+    fn from(error: SerializationError) -> Self {
+        Bn254Error::SerializationError(error)
     }
 }
 
@@ -45,30 +48,6 @@ impl CanonicalSerialize for Keypair {
 
     fn serialized_size(&self, compress: Compress) -> usize {
         self.secret_key.serialized_size(compress)
-    }
-}
-
-impl TryFrom<Keypair> for Vec<u8> {
-    type Error = KeypairError;
-
-    fn try_from(value: Keypair) -> Result<Self, Self::Error> {
-        let mut bytes = vec![];
-
-        value.serialize_with_mode(&mut bytes, Compress::No)?;
-
-        Ok(bytes)
-    }
-}
-
-impl TryFrom<&Keypair> for Vec<u8> {
-    type Error = KeypairError;
-
-    fn try_from(value: &Keypair) -> Result<Self, Self::Error> {
-        let mut bytes = vec![];
-
-        value.serialize_with_mode(&mut bytes, Compress::No)?;
-
-        Ok(bytes)
     }
 }
 
@@ -93,17 +72,29 @@ impl CanonicalDeserialize for Keypair {
     }
 }
 
-impl TryFrom<&[u8]> for Keypair {
-    type Error = KeypairError;
-
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        Ok(Keypair::deserialize_uncompressed(value)?)
-    }
-}
-
 impl Valid for Keypair {
     fn check(&self) -> Result<(), SerializationError> {
         self.secret_key.check()
+    }
+}
+
+impl Keypair {
+    pub fn to_bytes(&self) -> Result<Vec<u8>, Bn254Error> {
+        let mut bytes = Vec::new();
+        self.serialize_uncompressed(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, Bn254Error> {
+        Ok(Keypair::deserialize_uncompressed(bytes.as_ref())?)
+    }
+}
+
+impl TryFrom<&[u8]> for Keypair {
+    type Error = Bn254Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        Ok(Keypair::deserialize_uncompressed(value)?)
     }
 }
 
