@@ -1,9 +1,8 @@
-use std::ops::Neg;
+use std::{borrow::Borrow, ops::Neg};
 
 use ark_bn254::{Bn254, Fq, G1Affine, G2Affine};
 use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
 use ark_ff::{BigInt, Field, One, PrimeField};
-use ark_serialize::{CanonicalSerialize, Compress, SerializationError};
 use thiserror::Error;
 
 use crate::{
@@ -28,48 +27,34 @@ impl From<bn254::Keypair> for KeypairSigner {
 
 #[derive(Debug, Error)]
 pub enum KeypairSignerError {
-    #[error("Serialization error: {0}")]
-    SerializationError(SerializationError),
     #[error("Invalid signature")]
     InvalidSignature,
-    #[error("Decoding error: {0}")]
-    DecodingError(#[from] bs58::decode::Error),
 }
 
 pub type KeypairSignerResult<T> = Result<T, KeypairSignerError>;
 
-impl From<SerializationError> for KeypairSignerError {
-    fn from(value: SerializationError) -> Self {
-        Self::SerializationError(value)
-    }
-}
-
-impl Signer<&[u8; 32]> for KeypairSigner {
+impl<B: Borrow<[u8; 32]>> Signer<B> for KeypairSigner {
     type Error = KeypairSignerError;
+    type Signature = Signature;
 
     /// Caller is responsible for ensuring `hash` is a 32-byte hash of some arbitrary sized message
-    fn sign_message(&self, hash: &[u8; 32]) -> KeypairSignerResult<Vec<u8>> {
+    fn sign_message(&self, bytes: B) -> KeypairSignerResult<Signature> {
         let sk = self.keypair.secret_key();
-        let hm = hash_to_g1_point(hash);
+        let hm = hash_to_g1_point(bytes.borrow());
         // TODO: Check whether its better/worse to use the projective version of the point
         let sig = (hm * sk).into_affine();
 
-        let mut sig_bytes = vec![];
-
-        // TODO: Check whether this version is correct one to give to the EVM pre-compile (if not, fix)
-        sig.serialize_with_mode(&mut sig_bytes, Compress::Yes)?;
-
-        Ok(sig_bytes)
+        Ok(Signature::from(sig))
     }
 }
 
-pub fn verify_signature(
+pub fn verify_signature<B: Borrow<[u8; 32]>>(
     pubkey: &G2Pubkey,
     sig: &Signature,
-    message: &[u8; 32],
+    message: B,
 ) -> KeypairSignerResult<()> {
     let gen_g2 = G2Affine::generator();
-    let msg_point_g1 = hash_to_g1_point(message);
+    let msg_point_g1 = hash_to_g1_point(message.borrow());
 
     let neg_sig = sig.0.neg();
 
@@ -89,7 +74,7 @@ pub fn verify_signature(
 // Implements the hash-and-check algorithm
 // see https://hackmd.io/@benjaminion/bls12-381#Hash-and-check
 // Curve: y^2 = x^3 + 3
-fn hash_to_g1_point(message: &[u8; 32]) -> G1Affine {
+pub fn hash_to_g1_point(message: &[u8]) -> G1Affine {
     // TODO: big-endian or litte-endian here?
     let mut x = Fq::from_be_bytes_mod_order(message);
 
@@ -105,33 +90,45 @@ fn hash_to_g1_point(message: &[u8; 32]) -> G1Affine {
 
 #[cfg(test)]
 mod tests {
+    use std::{str::FromStr, sync::OnceLock};
+
     use super::*;
 
     fn generate_keypair() -> bn254::Keypair {
         bn254::Keypair::generate()
     }
 
-    const PRECOMPUTED_KEYPAIR: [u8; 32] = [
-        198, 117, 151, 83, 137, 156, 117, 191, 115, 217, 13, 31, 182, 91, 76, 247, 59, 36, 217,
-        199, 162, 183, 248, 204, 213, 190, 143, 127, 12, 30, 224, 32,
-    ];
+    static PRECOMPUTED_KEYPAIR: OnceLock<bn254::Keypair> = OnceLock::new();
+
+    fn precomputed_keypair() -> &'static bn254::Keypair {
+        PRECOMPUTED_KEYPAIR.get_or_init(|| {
+            bn254::Keypair::from_bytes([
+                198, 117, 151, 83, 137, 156, 117, 191, 115, 217, 13, 31, 182, 91, 76, 247, 59, 36,
+                217, 199, 162, 183, 248, 204, 213, 190, 143, 127, 12, 30, 224, 32,
+            ])
+            .unwrap()
+        })
+    }
     // This signature is for message [42u8; 32]
-    const PRECOMPUTED_SIGNATURE_FOR_KEYPAIR: &str = "4R27e1Aou8nsUsrMcb51WMS49BBzogFxo5fNygFzA9zk";
+    static PRECOMPUTED_SIGNATURE_FOR_KEYPAIR: OnceLock<Signature> = OnceLock::new();
+
+    fn precomputed_signature_for_keypair() -> &'static Signature {
+        PRECOMPUTED_SIGNATURE_FOR_KEYPAIR.get_or_init(|| {
+            Signature::from_str("4R27e1Aou8nsUsrMcb51WMS49BBzogFxo5fNygFzA9zk").unwrap()
+        })
+    }
 
     #[test]
     fn test_precomputed_signature() {
-        let keypair: bn254::Keypair = PRECOMPUTED_KEYPAIR.as_slice().try_into().unwrap();
+        let keypair = precomputed_keypair();
         let signer = KeypairSigner::from(keypair.clone());
         let message = [42u8; 32];
 
-        let expected_signature = bs58::decode(PRECOMPUTED_SIGNATURE_FOR_KEYPAIR)
-            .into_vec()
-            .unwrap();
-        let actual_signature = signer.sign_message(&message).unwrap();
-        assert_eq!(actual_signature, expected_signature);
+        let expected_signature = precomputed_signature_for_keypair();
+        let actual_signature = signer.sign_message(message).unwrap();
+        assert_eq!(actual_signature, *expected_signature);
 
-        let expected_sig = Signature::try_from(expected_signature.as_slice()).unwrap();
-        assert!(verify_signature(&keypair.public_key().g2, &expected_sig, &message).is_ok());
+        assert!(verify_signature(&keypair.public_key().g2, expected_signature, message).is_ok());
     }
 
     #[test]
@@ -140,10 +137,9 @@ mod tests {
         let signer = KeypairSigner::from(keypair.clone());
         let message = [42u8; 32];
 
-        let signature = signer.sign_message(&message).unwrap();
-        let sig = Signature::try_from(signature.as_slice()).unwrap();
+        let signature = signer.sign_message(message).unwrap();
 
-        assert!(verify_signature(&keypair.public_key().g2, &sig, &message).is_ok());
+        assert!(verify_signature(&keypair.public_key().g2, &signature, message).is_ok());
     }
 
     #[test]
@@ -153,11 +149,10 @@ mod tests {
         let signer = KeypairSigner::from(keypair.clone());
         let message = [42u8; 32];
 
-        let signature = signer.sign_message(&message).unwrap();
+        let signature = signer.sign_message(message).unwrap();
 
-        let sig = Signature::try_from(signature.as_slice()).unwrap();
         assert!(matches!(
-            verify_signature(&other_keypair.public_key().g2, &sig, &message),
+            verify_signature(&other_keypair.public_key().g2, &signature, message),
             Err(KeypairSignerError::InvalidSignature)
         ));
     }
@@ -174,18 +169,15 @@ mod tests {
         let signatures: Vec<_> = signers
             .iter()
             .take(3)
-            .map(|signer| signer.sign_message(&message).unwrap())
+            .map(|signer| signer.sign_message(message).unwrap())
             .collect();
 
-        let combined_sig = signatures
-            .iter()
-            .map(|sig| Signature::try_from(sig.as_slice()).unwrap())
-            .sum();
+        let combined_sig = signatures.iter().sum();
 
         // Combine public keys
         let combined_pubkey = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
 
-        assert!(verify_signature(&combined_pubkey, &combined_sig, &message).is_ok());
+        assert!(verify_signature(&combined_pubkey, &combined_sig, message).is_ok());
     }
 
     #[test]
@@ -200,19 +192,16 @@ mod tests {
         let signatures: Vec<_> = signers
             .iter()
             .take(2) // Only sign with the first two keypairs
-            .map(|signer| signer.sign_message(&message).unwrap())
+            .map(|signer| signer.sign_message(message).unwrap())
             .collect();
 
-        let combined_sig = signatures
-            .iter()
-            .map(|sig| Signature::try_from(sig.as_slice()).unwrap())
-            .sum();
+        let combined_sig = signatures.iter().sum();
 
         // Combine public keys (including the third unused one)
         let combined_pubkey = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
 
         assert!(matches!(
-            verify_signature(&combined_pubkey, &combined_sig, &message),
+            verify_signature(&combined_pubkey, &combined_sig, message),
             Err(KeypairSignerError::InvalidSignature)
         ));
     }
@@ -224,20 +213,17 @@ mod tests {
         let message1 = [1u8; 32];
         let message2 = [2u8; 32];
 
-        let signature1 = signer.sign_message(&message1).unwrap();
-        let signature2 = signer.sign_message(&message2).unwrap();
+        let signature1 = signer.sign_message(message1).unwrap();
+        let signature2 = signer.sign_message(message2).unwrap();
 
-        let sig1 = Signature::try_from(signature1.as_slice()).unwrap();
-        let sig2 = Signature::try_from(signature2.as_slice()).unwrap();
-
-        assert!(verify_signature(&keypair.public_key().g2, &sig1, &message1).is_ok());
-        assert!(verify_signature(&keypair.public_key().g2, &sig2, &message2).is_ok());
+        assert!(verify_signature(&keypair.public_key().g2, &signature1, message1).is_ok());
+        assert!(verify_signature(&keypair.public_key().g2, &signature2, message2).is_ok());
         assert!(matches!(
-            verify_signature(&keypair.public_key().g2, &sig1, &message2),
+            verify_signature(&keypair.public_key().g2, &signature1, message2),
             Err(KeypairSignerError::InvalidSignature)
         ));
         assert!(matches!(
-            verify_signature(&keypair.public_key().g2, &sig2, &message1),
+            verify_signature(&keypair.public_key().g2, &signature2, message1),
             Err(KeypairSignerError::InvalidSignature)
         ));
     }

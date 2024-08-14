@@ -33,7 +33,7 @@ pub fn process_verify(
     let public_key = G2Pubkey::from_str(&pubkey)?;
     let signature = Signature::from_str(&signature)?;
 
-    match verify_signature(&public_key, &signature, &hash_buffer) {
+    match verify_signature(&public_key, &signature, hash_buffer) {
         Ok(_) => println!("Signature is valid"),
         _ => println!("Signature verification failed!"),
     };

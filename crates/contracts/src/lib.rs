@@ -1,3 +1,5 @@
+pub mod registration;
+
 use alloy::sol;
 
 sol!(
