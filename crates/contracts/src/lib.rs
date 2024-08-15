@@ -9,6 +9,7 @@ sol!(
     "abi/ICore.json",
 );
 
+// TODO: Remove bytecode from here and link when testing
 sol!(
     #[allow(missing_docs)]
     #[sol(

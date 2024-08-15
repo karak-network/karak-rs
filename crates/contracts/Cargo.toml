@@ -15,4 +15,6 @@ trait-variant = "0.1.2"
 [dev-dependencies]
 alloy = { version = "0.2.1", features = ["node-bindings"] }
 eyre = "0.6.12"
+serde = { version = "1.0.207", features = ["derive"] }
+serde_json = "1.0.125"
 tokio = { workspace = true }
