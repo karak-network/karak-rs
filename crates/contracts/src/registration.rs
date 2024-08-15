@@ -5,16 +5,19 @@ use alloy::{
     sol_types::SolValue,
     transports::Transport,
 };
-use karak_sdk::keypair::bn254::algebra::{g1::G1Point, g2::G2Point};
+use karak_sdk::{
+    keypair::bn254::{G1Pubkey, G2Pubkey},
+    signer::bls::signature::Signature,
+};
 
 use crate::Core::CoreInstance;
 
 sol!(
     struct BlsRegistration {
-        G1Point g1_pubkey;
-        G2Point g2_pubkey;
+        G1Pubkey g1_pubkey;
+        G2Pubkey g2_pubkey;
+        Signature signature;
         bytes32 msg_hash;
-        G1Point signature;
     }
 );
 
