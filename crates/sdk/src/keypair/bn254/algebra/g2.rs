@@ -122,7 +122,7 @@ impl From<G2Affine> for G2Point {
 // Bindings for conversions to SolType
 mod sol {
     use alloy::{primitives::U256, sol_types};
-    use alloy_sol_types::{abi::token::FixedSeqToken, SolType};
+    use alloy_sol_types::SolType;
     use ark_bn254::{Fq, Fq2, G2Affine};
     use ark_ff::{BigInt, PrimeField};
 
@@ -151,7 +151,9 @@ mod sol {
             let x1 = U256::from_limbs(g2.0.x.c1.into_bigint().0);
             let y0 = U256::from_limbs(g2.0.y.c0.into_bigint().0);
             let y1 = U256::from_limbs(g2.0.y.c1.into_bigint().0);
-            ([x0, x1], [y0, y1])
+
+            // IMPORTANT: The Ethereum precompile expects the points to be in the reverse order
+            ([x1, x0], [y1, y0])
         }
     }
     #[doc(hidden)]
@@ -161,19 +163,22 @@ mod sol {
             let x1 = U256::from_limbs(g2.0.x.c1.into_bigint().0);
             let y0 = U256::from_limbs(g2.0.y.c0.into_bigint().0);
             let y1 = U256::from_limbs(g2.0.y.c1.into_bigint().0);
-            ([x0, x1], [y0, y1])
+
+            // IMPORTANT: The Ethereum precompile expects the points to be in the reverse order
+            ([x1, x0], [y1, y0])
         }
     }
 
     #[doc(hidden)]
     impl From<UnderlyingRustTuple<'_>> for G2Point {
         fn from(tuple: UnderlyingRustTuple<'_>) -> Self {
-            let [x0, x1] = tuple.0;
+            // IMPORTANT: The Ethereum precompile expects the points to be in the reverse order
+            let [x1, x0] = tuple.0;
             let x = Fq2::new(
                 Fq::from(BigInt(x0.into_limbs())),
                 Fq::from(BigInt(x1.into_limbs())),
             );
-            let [y0, y1] = tuple.1;
+            let [y1, y0] = tuple.1;
             let y = Fq2::new(
                 Fq::from(BigInt(y0.into_limbs())),
                 Fq::from(BigInt(y1.into_limbs())),
@@ -189,18 +194,15 @@ mod sol {
     impl alloy_sol_types::private::SolTypeValue<Self> for G2Point {
         #[inline]
         fn stv_to_tokens(&self) -> <Self as alloy_sol_types::SolType>::Token<'_> {
-            let ([x0, x1], [y0, y1]) = UnderlyingRustTuple::from(self);
+            let (x, y) = UnderlyingRustTuple::from(self);
 
-            // IMPORTANT: The order of the elements in the tuple must match the order of the fields in the struct
             (
-                FixedSeqToken([
-                    sol_types::sol_data::Uint::<256>::tokenize(&x1),
-                    sol_types::sol_data::Uint::<256>::tokenize(&x0),
-                ]),
-                FixedSeqToken([
-                    sol_types::sol_data::Uint::<256>::tokenize(&y1),
-                    sol_types::sol_data::Uint::<256>::tokenize(&y0),
-                ]),
+                <sol_types::sol_data::FixedArray<sol_types::sol_data::Uint<256>, 2usize>>::tokenize(
+                    &x,
+                ),
+                <sol_types::sol_data::FixedArray<sol_types::sol_data::Uint<256>, 2usize>>::tokenize(
+                    &y,
+                ),
             )
         }
         #[inline]
@@ -244,11 +246,9 @@ mod sol {
         }
         #[inline]
         fn detokenize(token: Self::Token<'_>) -> Self::RustType {
-            let ([x0, x1], [y0, y1]) =
-                <UnderlyingSolTuple<'_> as alloy_sol_types::SolType>::detokenize(token);
+            let tuple = <UnderlyingSolTuple<'_> as alloy_sol_types::SolType>::detokenize(token);
 
-            // IMPORTANT: The order of the elements in the tuple must match the order of the fields in the struct
-            <Self as From<UnderlyingRustTuple<'_>>>::from(([x1, x0], [y1, y0]))
+            Self::from(tuple)
         }
     }
 
@@ -269,16 +269,18 @@ mod sol {
         }
         #[inline]
         fn eip712_encode_data(&self) -> alloy_sol_types::private::Vec<u8> {
-            let ([x0, x1], [y0, y1]) = UnderlyingRustTuple::from(self);
+            let (x, y) = UnderlyingRustTuple::from(self);
             [
-                <sol_types::sol_data::Uint<256> as alloy_sol_types::SolType>::eip712_data_word(&x1)
-                    .0,
-                <sol_types::sol_data::Uint<256> as alloy_sol_types::SolType>::eip712_data_word(&x0)
-                    .0,
-                <sol_types::sol_data::Uint<256> as alloy_sol_types::SolType>::eip712_data_word(&y1)
-                    .0,
-                <sol_types::sol_data::Uint<256> as alloy_sol_types::SolType>::eip712_data_word(&y0)
-                    .0,
+                <sol_types::sol_data::FixedArray<
+                    sol_types::sol_data::Uint<256>,
+                    2usize,
+                > as alloy_sol_types::SolType>::eip712_data_word(&x)
+                .0,
+                <sol_types::sol_data::FixedArray<
+                    sol_types::sol_data::Uint<256>,
+                    2usize,
+                > as alloy_sol_types::SolType>::eip712_data_word(&y)
+                .0,
             ]
             .concat()
         }
@@ -287,31 +289,25 @@ mod sol {
     impl alloy_sol_types::EventTopic for G2Point {
         #[inline]
         fn topic_preimage_length(rust: &Self::RustType) -> usize {
-            let ([x0, x1], [y0, y1]) = UnderlyingRustTuple::from(rust);
-            <sol_types::sol_data::Uint<256> as alloy_sol_types::EventTopic>::topic_preimage_length(&x1)
-            + <sol_types::sol_data::Uint<256> as alloy_sol_types::EventTopic>::topic_preimage_length(&x0)
-            + <sol_types::sol_data::Uint<256> as alloy_sol_types::EventTopic>::topic_preimage_length(&y1)
-            + <sol_types::sol_data::Uint<256> as alloy_sol_types::EventTopic>::topic_preimage_length(&y0)
+            let (x, y) = UnderlyingRustTuple::from(rust);
+            <sol_types::sol_data::FixedArray<
+                sol_types::sol_data::Uint<256>,
+                2usize,
+            > as alloy_sol_types::EventTopic>::topic_preimage_length(&x)
+            + <sol_types::sol_data::FixedArray<
+                sol_types::sol_data::Uint<256>,
+                2usize,
+            > as alloy_sol_types::EventTopic>::topic_preimage_length(&y)
         }
         #[inline]
         fn encode_topic_preimage(
             rust: &Self::RustType,
             out: &mut alloy_sol_types::private::Vec<u8>,
         ) {
-            let ([x0, x1], [y0, y1]) = UnderlyingRustTuple::from(rust);
+            let (x, y) = UnderlyingRustTuple::from(rust);
             out.reserve(<Self as alloy_sol_types::EventTopic>::topic_preimage_length(rust));
-            <sol_types::sol_data::Uint<256> as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                &x1, out,
-            );
-            <sol_types::sol_data::Uint<256> as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                &x0, out,
-            );
-            <sol_types::sol_data::Uint<256> as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                &y1, out,
-            );
-            <sol_types::sol_data::Uint<256> as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                &y0, out,
-            );
+            <sol_types::sol_data::FixedArray<sol_types::sol_data::Uint<256> ,2usize>as alloy_sol_types::EventTopic> ::encode_topic_preimage(&x,out);
+            <sol_types::sol_data::FixedArray<sol_types::sol_data::Uint<256> ,2usize>as alloy_sol_types::EventTopic> ::encode_topic_preimage(&y,out);
         }
         #[inline]
         fn encode_topic(rust: &Self::RustType) -> alloy_sol_types::abi::token::WordToken {
@@ -352,7 +348,7 @@ mod tests {
         )
         .unwrap();
 
-        let g2 = G2Point::from(([x_0, x_1], [y_0, y_1]));
+        let g2 = G2Point::from(([x_1, x_0], [y_1, y_0]));
         let encoded = g2.abi_encode();
         assert_eq!(encoded, ([x_1, x_0], [y_1, y_0]).abi_encode());
     }

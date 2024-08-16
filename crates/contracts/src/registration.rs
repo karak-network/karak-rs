@@ -82,7 +82,7 @@ mod tests {
             U256::from_str("0x220338c1a0124231fa2ed8b56305a670b0c1f2d2ab43ceb6f69c3c5f56e109cf")?;
 
         let g1_pubkey = G1Pubkey::from((g1_x, g1_y));
-        let g2_pubkey = G2Pubkey::from(([g2_x0, g2_x1], [g2_y0, g2_y1]));
+        let g2_pubkey = G2Pubkey::from(([g2_x1, g2_x0], [g2_y1, g2_y0]));
         let signature = Signature::from((signature_x, signature_y));
         let msg_hash = keccak256(b"test message");
         let registration = BlsRegistration {
