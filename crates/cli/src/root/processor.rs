@@ -1,7 +1,7 @@
 use color_eyre::eyre;
 
 use crate::{
-    bls, keypair,
+    bls, config, keypair,
     operator::{self},
 };
 
@@ -12,5 +12,6 @@ pub async fn process(command: Root) -> eyre::Result<()> {
         Root::Keypair(keypair) => keypair::processor::process(keypair).await,
         Root::BLS(bls) => bls::processor::process(bls).await,
         Root::Operator(operator) => operator::processor::process(operator).await,
+        Root::Config(config) => config::processor::process(config).await,
     }
 }
