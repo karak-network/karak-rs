@@ -21,7 +21,7 @@ karak-sdk = { path = "../sdk" }
 rand = "0.8.5"
 rpassword = "7.3"
 sha3 = "0.10"
-thiserror = "1.0.63"
+thiserror = "1.0.62"
 tokio = { workspace = true }
 url = "2.5.2"
 # TODO: Update to latest versions of these
