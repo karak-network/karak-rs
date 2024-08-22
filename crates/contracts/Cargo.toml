@@ -9,7 +9,7 @@ edition = { workspace = true }
 [dependencies]
 alloy = { workspace = true }
 eyre = "0.6.12"
-karak-sdk = { path = "../sdk" }
+karak-kms = { path = "../kms" }
 trait-variant = "0.1.2"
 
 [dev-dependencies]

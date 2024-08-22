@@ -1,4 +1,2 @@
-pub mod encryption;
-pub mod keypair;
-pub mod keystore;
-pub mod signer;
+pub use karak_contracts as contracts;
+pub use karak_kms as kms;

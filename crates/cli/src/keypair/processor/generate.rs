@@ -2,7 +2,7 @@ use std::{fs, path::PathBuf};
 
 use alloy::signers::local::{LocalSigner, PrivateKeySigner};
 use color_eyre::eyre::{self, eyre};
-use karak_sdk::{
+use karak_kms::{
     keypair::{bn254, traits::Keypair},
     keystore::{
         self,
