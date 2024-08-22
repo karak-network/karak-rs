@@ -85,9 +85,9 @@
             "internalType": "address[]"
           },
           {
-            "name": "earmarkedStakes",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
+            "name": "slashPercentagesWad",
+            "type": "uint96[]",
+            "internalType": "uint96[]"
           },
           {
             "name": "nonce",
@@ -273,9 +273,9 @@
             "internalType": "address[]"
           },
           {
-            "name": "earmarkedStakes",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
+            "name": "slashPercentagesWad",
+            "type": "uint96[]",
+            "internalType": "uint96[]"
           },
           {
             "name": "nonce",
@@ -616,6 +616,25 @@
   },
   {
     "type": "function",
+    "name": "isVaultQueuedForSlashing",
+    "inputs": [
+      {
+        "name": "vault",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "owner",
     "inputs": [],
     "outputs": [
@@ -834,9 +853,9 @@
             "internalType": "address[]"
           },
           {
-            "name": "earmarkedStakes",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
+            "name": "slashPercentagesWad",
+            "type": "uint96[]",
+            "internalType": "uint96[]"
           },
           {
             "name": "nonce",
@@ -1103,9 +1122,9 @@
             "internalType": "address[]"
           },
           {
-            "name": "earmarkedStakes",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
+            "name": "slashPercentagesWad",
+            "type": "uint96[]",
+            "internalType": "uint96[]"
           },
           {
             "name": "nonce",
@@ -1132,6 +1151,31 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeployedVault",
+    "inputs": [
+      {
+        "name": "operator",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "vault",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "asset",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -1173,9 +1217,9 @@
             "internalType": "address[]"
           },
           {
-            "name": "earmarkedStakes",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
+            "name": "slashPercentagesWad",
+            "type": "uint96[]",
+            "internalType": "uint96[]"
           },
           {
             "name": "nonce",
@@ -1266,6 +1310,32 @@
   },
   {
     "type": "event",
+    "name": "HookCallFailed",
+    "inputs": [
+      {
+        "name": "returnData",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "HookCallSucceeded",
+    "inputs": [
+      {
+        "name": "returnData",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "InitializeCore",
     "inputs": [
       {
@@ -1322,6 +1392,31 @@
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InterfaceNotSupported",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "NewVault",
+    "inputs": [
+      {
+        "name": "vault",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "implementation",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -1518,6 +1613,19 @@
   },
   {
     "type": "event",
+    "name": "SkippedSlashing",
+    "inputs": [
+      {
+        "name": "vault",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Unpaused",
     "inputs": [
       {
@@ -1593,6 +1701,11 @@
   },
   {
     "type": "error",
+    "name": "AssetNotAllowlisted",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "AttemptedPauseWhileUnpausing",
     "inputs": []
   },
@@ -1603,7 +1716,33 @@
   },
   {
     "type": "error",
+    "name": "DSSAlreadyRegistered",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DSSHookCallReverted",
+    "inputs": [
+      {
+        "name": "revertReason",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "DSSNotRegistered",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DuplicateSlashingVaults",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "EmptyArray",
     "inputs": []
   },
   {
@@ -1629,12 +1768,57 @@
   },
   {
     "type": "error",
+    "name": "InvalidSlashingCount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidSlashingParams",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "LengthsDontMatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MathOverflowedMulDiv",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MaxSlashPercentageWadBreached",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MaxSlashableVaultsPerRequestBreached",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MaxVaultCapacityReached",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MinSlashingDelayNotPassed",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NewOwnerIsZeroAddress",
     "inputs": []
   },
   {
     "type": "error",
     "name": "NoHandoverRequest",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotEnoughGas",
     "inputs": []
   },
   {
@@ -1664,8 +1848,29 @@
   },
   {
     "type": "error",
+    "name": "SlashingCooldownNotPassed",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "Unauthorized",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VaultCreationFailedAddrMismatch",
+    "inputs": [
+      {
+        "name": "expected",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "actual",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
@@ -1679,7 +1884,17 @@
   },
   {
     "type": "error",
+    "name": "VaultNotStakedToDSS",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroSlashPercentageWad",
     "inputs": []
   }
 ]

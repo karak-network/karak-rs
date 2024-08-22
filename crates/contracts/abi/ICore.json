@@ -60,9 +60,9 @@
             "internalType": "address[]"
           },
           {
-            "name": "earmarkedStakes",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
+            "name": "slashPercentagesWad",
+            "type": "uint96[]",
+            "internalType": "uint96[]"
           },
           {
             "name": "nonce",
@@ -204,9 +204,9 @@
             "internalType": "address[]"
           },
           {
-            "name": "earmarkedStakes",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
+            "name": "slashPercentagesWad",
+            "type": "uint96[]",
+            "internalType": "uint96[]"
           },
           {
             "name": "nonce",
@@ -330,6 +330,25 @@
   },
   {
     "type": "function",
+    "name": "isVaultQueuedForSlashing",
+    "inputs": [
+      {
+        "name": "vault",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "pause",
     "inputs": [
       {
@@ -426,9 +445,9 @@
             "internalType": "address[]"
           },
           {
-            "name": "earmarkedStakes",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
+            "name": "slashPercentagesWad",
+            "type": "uint96[]",
+            "internalType": "uint96[]"
           },
           {
             "name": "nonce",
