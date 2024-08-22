@@ -11,7 +11,7 @@ use karak_contracts::{
     registration::{BlsRegistration, OperatorRegistration},
     Core::CoreInstance,
 };
-use karak_sdk::{
+use karak_kms::{
     keypair::{bn254, traits::Keypair},
     keystore::{self, traits::EncryptedKeystore},
     signer::{bls::keypair_signer::KeypairSigner, traits::Signer},

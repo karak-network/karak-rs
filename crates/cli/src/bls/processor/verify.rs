@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use color_eyre::eyre;
-use karak_sdk::{
+use karak_kms::{
     keypair::bn254::G2Pubkey,
     signer::bls::{keypair_signer::verify_signature, signature::Signature},
 };

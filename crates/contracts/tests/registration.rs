@@ -13,7 +13,7 @@ use alloy::{
 use bytecode::Bytecode;
 use eyre::Result;
 use karak_contracts::registration::BlsRegistration;
-use karak_sdk::{
+use karak_kms::{
     keypair::{
         bn254::{self},
         traits::Keypair,

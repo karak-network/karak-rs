@@ -5,7 +5,7 @@ use alloy::{
     sol_types::SolValue,
     transports::Transport,
 };
-use karak_sdk::{
+use karak_kms::{
     keypair::bn254::{G1Pubkey, G2Pubkey},
     signer::bls::signature::Signature,
 };

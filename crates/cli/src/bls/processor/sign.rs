@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use color_eyre::eyre;
-use karak_sdk::{
+use karak_kms::{
     keypair::bn254,
     keystore::{
         self,

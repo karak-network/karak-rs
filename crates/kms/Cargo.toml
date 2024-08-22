@@ -1,6 +1,6 @@
 [package]
-name = "karak-sdk"
-description = "Karak SDK"
+name = "karak-kms"
+description = "Karak Key Management SDK"
 version = { workspace = true }
 authors = { workspace = true }
 repository = { workspace = true }
