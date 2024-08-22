@@ -10,4 +10,4 @@ edition = "2021"
 
 [workspace.dependencies]
 alloy = { version = "0.2.1", features = ["full"] }
-tokio = { version = "1.39.2", features = ["full"] }
+tokio = { version = "1.38.0", features = ["full"] }
