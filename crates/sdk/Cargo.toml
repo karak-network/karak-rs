@@ -1,0 +1,11 @@
+[package]
+name = "karak-rs"
+description = "Karak Rust SDK"
+version = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+karak-kms = { path = "../kms" }
+karak-contracts = { path = "../contracts" }
