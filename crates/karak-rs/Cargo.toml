@@ -9,3 +9,4 @@ edition = { workspace = true }
 [dependencies]
 karak-kms = { path = "../kms" }
 karak-contracts = { path = "../contracts" }
+karak-bls = { path = "../bls" }

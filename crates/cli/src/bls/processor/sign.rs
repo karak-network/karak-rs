@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use color_eyre::eyre;
+use karak_bls::keypair_signer::KeypairSigner;
 use karak_kms::{
     keypair::bn254,
     keystore::{
@@ -8,7 +9,7 @@ use karak_kms::{
         aws::AwsKeystoreParams,
         traits::{AsyncEncryptedKeystore, EncryptedKeystore},
     },
-    signer::{bls, traits::Signer},
+    signer::traits::Signer,
 };
 use sha3::{Digest, Keccak256};
 
@@ -70,7 +71,7 @@ pub async fn process_sign(
 
     println!("Signing with BN254 keypair: {keypair}");
 
-    let signer = bls::keypair_signer::KeypairSigner::from(keypair);
+    let signer = KeypairSigner::from(keypair);
 
     let signature = signer.sign_message(hash_buffer)?;
     println!("Signature: {signature}");
