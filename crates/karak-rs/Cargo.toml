@@ -1,5 +1,6 @@
 [package]
 name = "karak-rs"
+license = { workspace = true }
 description = "Karak Rust SDK"
 version = { workspace = true }
 authors = { workspace = true }

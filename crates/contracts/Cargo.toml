@@ -1,5 +1,6 @@
 [package]
 name = "karak-contracts"
+license = { workspace = true }
 description = "Karak Contracts"
 version = { workspace = true }
 authors = { workspace = true }

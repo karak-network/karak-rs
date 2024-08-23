@@ -1,5 +1,6 @@
 [package]
 name = "karak-cli"
+license = { workspace = true }
 description = "Karak CLI"
 version = { workspace = true }
 authors = { workspace = true }

@@ -1,5 +1,6 @@
 [package]
 name = "karak-bls"
+license = { workspace = true }
 description = "Karak BLS SDK"
 version = { workspace = true }
 authors = { workspace = true }
