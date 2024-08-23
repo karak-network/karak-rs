@@ -8,8 +8,8 @@ repository = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-karak-kms = { path = "../kms" }
-karak-contracts = { path = "../contracts" }
+karak-kms = { version = "0.1.1", path = "../kms" }
+karak-contracts = { version = "0.1.1", path = "../contracts" }
 ark-bn254 = "0.4.0"
 ark-ec = "0.4.2"
 ark-ff = "0.4.2"
