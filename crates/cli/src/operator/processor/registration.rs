@@ -7,14 +7,14 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use color_eyre::eyre;
-use karak_contracts::{
+use karak_bls::{
+    keypair_signer::{KeypairSigner, Signer},
     registration::{BlsRegistration, OperatorRegistration},
-    Core::CoreInstance,
 };
+use karak_contracts::Core::CoreInstance;
 use karak_kms::{
     keypair::{bn254, traits::Keypair},
     keystore::{self, traits::EncryptedKeystore},
-    signer::{bls::keypair_signer::KeypairSigner, traits::Signer},
 };
 use url::Url;
 

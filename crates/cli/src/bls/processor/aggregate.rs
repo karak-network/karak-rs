@@ -1,10 +1,8 @@
 use std::str::FromStr;
 
 use color_eyre::eyre;
-use karak_kms::{
-    keypair::bn254::{Bn254Error, G2Pubkey},
-    signer::bls::signature::Signature,
-};
+use karak_bls::signature::Signature;
+use karak_kms::keypair::bn254::{Bn254Error, G2Pubkey};
 
 pub enum AggregateParams {
     Signatures(Vec<String>),

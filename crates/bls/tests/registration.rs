@@ -12,14 +12,13 @@ use alloy::{
 };
 use bytecode::Bytecode;
 use eyre::Result;
-use karak_contracts::registration::BlsRegistration;
-use karak_kms::{
-    keypair::{
-        bn254::{self},
-        traits::Keypair,
-    },
-    signer::{bls::keypair_signer::KeypairSigner, traits::Signer},
+use karak_bls::keypair_signer::KeypairSigner;
+use karak_bls::registration::BlsRegistration;
+use karak_kms::keypair::{
+    bn254::{self},
+    traits::Keypair,
 };
+use karak_kms::signer::traits::Signer;
 use BlsSdk::BlsSdkInstance;
 use Verify::VerifyInstance;
 

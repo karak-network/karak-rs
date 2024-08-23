@@ -5,13 +5,12 @@ use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
 use ark_ff::{BigInt, Field, One, PrimeField};
 use thiserror::Error;
 
-use crate::{
-    keypair::{
-        bn254::{self, G2Pubkey},
-        traits::Keypair,
-    },
-    signer::traits::Signer,
+use karak_kms::keypair::{
+    bn254::{self, G2Pubkey},
+    traits::Keypair,
 };
+
+pub use karak_kms::signer::traits::Signer;
 
 use super::signature::Signature;
 
