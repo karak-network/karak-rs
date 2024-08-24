@@ -5,6 +5,8 @@ use crate::keypair::traits::Encryptable;
 
 use super::traits::AsyncEncryptedKeystore;
 
+pub use aws_config::SdkConfig as AwsConfig;
+
 #[derive(Debug, Error)]
 pub enum AwsKeystoreError<E: std::error::Error + Send + Sync> {
     #[error("Encryption error: {0}")]
@@ -39,7 +41,7 @@ pub struct AwsEncryptedKeystore {
 }
 
 impl AwsEncryptedKeystore {
-    pub fn new(config: &aws_config::SdkConfig) -> Self {
+    pub fn new(config: &AwsConfig) -> Self {
         Self {
             client: aws_sdk_secretsmanager::Client::new(config),
         }
