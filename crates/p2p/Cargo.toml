@@ -1,9 +1,11 @@
 [package]
-name = "chat-example"
-version = "0.1.0"
-edition = "2021"
-publish = false
-license = "MIT"
+name = "karak-p2p"
+license = { workspace = true }
+description = "Karak P2P SDK"
+version = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+edition = { workspace = true }
 
 [package.metadata.release]
 release = false
