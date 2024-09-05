@@ -8,6 +8,7 @@ use std::{
 use ark_bn254::{G1Affine, G1Projective};
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use serde::{Deserialize, Serialize};
 
 use crate::keypair::bn254::Bn254Error;
 
@@ -116,6 +117,19 @@ impl Display for G1Point {
 impl From<G1Affine> for G1Point {
     fn from(g1: G1Affine) -> Self {
         G1Point(g1)
+    }
+}
+
+impl Serialize for G1Point {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for G1Point {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        G1Point::from_str(&s).map_err(serde::de::Error::custom)
     }
 }
 
@@ -325,5 +339,13 @@ mod tests {
             g1.to_string(),
             "FgMVD1tGpx5z4EW6b8kCjNcH8ydXuviEKUoW4fJecrdy"
         );
+    }
+
+    #[test]
+    fn test_serde() {
+        let g1 = G1Point::generator();
+        let serialized = serde_json::to_string(&g1).unwrap();
+        let deserialized = serde_json::from_str::<G1Point>(&serialized).unwrap();
+        assert_eq!(g1, deserialized);
     }
 }
