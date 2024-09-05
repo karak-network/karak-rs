@@ -1,0 +1,17 @@
+[package]
+name = "chat-example"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+
+[package.metadata.release]
+release = false
+
+[dependencies]
+tokio = { workspace = true, features = ["full"] }
+async-trait = "0.1"
+libp2p = { version = "0.54.1", features = [ "tokio", "gossipsub", "kad", "noise", "macros", "tcp", "yamux", "quic", "dns"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+futures = "0.3.30"
