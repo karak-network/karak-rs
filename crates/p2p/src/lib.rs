@@ -22,19 +22,18 @@
 
 use futures::stream::StreamExt;
 use libp2p::gossipsub::{Message, MessageId};
-use libp2p::multiaddr::Protocol;
 use libp2p::{
     gossipsub, kad, noise,
     swarm::{NetworkBehaviour, Swarm, SwarmEvent},
     tcp, yamux,
 };
 use libp2p::{Multiaddr, PeerId};
-use std::borrow::BorrowMut;
 use std::collections::hash_map::DefaultHasher;
 use std::error::Error;
 use std::hash::{Hash, Hasher};
 use std::time::Duration;
-use tokio::{io, select, test};
+use tokio::sync::mpsc;
+use tokio::{io, select};
 use tracing_subscriber::EnvFilter;
 
 // We create a custom network behaviour that combines Gossipsub and Kademlia.
@@ -49,14 +48,14 @@ struct P2PNode {
     pub address: Multiaddr,
 }
 
-struct UserDefined;
-
-trait P2PUserDefined {
-    fn on_incoming_message(&self, propagation_source: PeerId, id: MessageId, message: Message);
+struct GossipMessage {
+    topic: String,
+    message: String,
 }
 
 pub struct KarakP2P {
     swarm: Option<Swarm<KarakP2PBehaviour>>,
+    message_receiver: mpsc::Receiver<GossipMessage>,
 }
 
 impl KarakP2P {
@@ -113,13 +112,12 @@ impl KarakP2P {
         Ok(self)
     }
 
-    async fn start_listening<T: P2PUserDefined>(
+    fn start_server(
         &mut self,
         topic: &str,
         listen_addr: Multiaddr,
         bootstrap_addrs: Vec<P2PNode>,
-        user_defined_trait_impl: &T,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<&mut Self, Box<dyn Error>> {
         // Create a Gossipsub topic
         let topic = gossipsub::IdentTopic::new(topic);
         // subscribes to our topic
@@ -137,6 +135,7 @@ impl KarakP2P {
             .listen_on(listen_addr)?;
 
         for peer in &bootstrap_addrs {
+            println!("Adding peer: {:?}, {:?}", peer.peer_id, peer.address);
             self.swarm
                 .as_mut()
                 .expect("swarm not defined")
@@ -144,15 +143,24 @@ impl KarakP2P {
                 .kademlia
                 .add_address(&peer.peer_id, peer.address.clone());
         }
+        Ok(self)
+    }
 
+    async fn start_listening(
+        &mut self,
+        on_incoming_message: fn(PeerId, MessageId, Message),
+    ) -> Result<(), Box<dyn Error>> {
         loop {
             select! {
+                Some(gossip_message) = self.message_receiver.recv() => {
+                    self.publish_message(gossip_message.topic.as_str(), gossip_message.message.as_str()).unwrap();
+                }
                 event = self.swarm.as_mut().expect("swarm not defined").select_next_some() => match event {
                     SwarmEvent::Behaviour(KarakP2PBehaviourEvent::Gossipsub(gossipsub::Event::Message {
                         propagation_source: peer_id,
                         message_id: id,
                         message,
-                    })) => user_defined_trait_impl.on_incoming_message(peer_id, id, message)                        ,
+                    })) => on_incoming_message(peer_id, id, message)                        ,
                     SwarmEvent::NewListenAddr { address, .. } => {
                         println!("Local node is listening on {address}");
                     }
@@ -162,11 +170,7 @@ impl KarakP2P {
         }
     }
 
-    fn publish_message(
-        &mut self,
-        topic: &str,
-        message: &str,
-    ) -> Result<(), Box<dyn Error>> {
+    fn publish_message(&mut self, topic: &str, message: &str) -> Result<(), Box<dyn Error>> {
         let topic_hash = gossipsub::IdentTopic::new(topic);
         self.swarm
             .as_mut()
@@ -190,69 +194,89 @@ impl KarakP2P {
 mod tests {
     use std::thread;
 
+    use futures::{FutureExt, TryFutureExt};
+    use io::Interest;
+    use tokio::sync::oneshot;
+
     use super::*;
 
-    impl P2PUserDefined for UserDefined {
-        fn on_incoming_message(&self, propagation_source: PeerId, id: MessageId, message: Message) {
-            println!(
-                "This is the incoming message: {:?}",
-                String::from_utf8_lossy(&message.data)
-            )
-        }
-    }
-
     #[tokio::test]
-    async fn test_entire_flow() -> Result<(), Box<dyn Error>> {
-        tokio::spawn(async {
-        let user_defined = UserDefined;
-        let mut karak_p2p = KarakP2P { swarm: None };
-        karak_p2p.create_swarm().unwrap();
-        let peer_id = karak_p2p.peer_id().clone();
-            karak_p2p
-                .start_listening(
-                    "test",
-                    "/ip4/127.0.0.1/tcp/8134".parse::<Multiaddr>().unwrap(),
-                    vec![],
-                    &user_defined,
-                )
-                .await.unwrap();
-        });
+    #[should_panic(expected = "Intended panic for testing")]
+    async fn test_entire_flow() -> () {
+        let (message_sender_one, message_receiver_one) = mpsc::channel::<GossipMessage>(100);
+        let (message_sender_two, message_receiver_two) = mpsc::channel::<GossipMessage>(100);
+        let (tx, rx) = oneshot::channel::<PeerId>();
 
-        tokio::spawn(async {
-            let user_defined = UserDefined;
-            let mut karak_p2p = KarakP2P { swarm: None };
+        let handle1 = tokio::spawn(async move {
+            let mut karak_p2p = KarakP2P {
+                swarm: None,
+                message_receiver: message_receiver_one,
+            };
             karak_p2p.create_swarm().unwrap();
             let peer_id = karak_p2p.peer_id().clone();
-                karak_p2p
-                    .start_listening(
-                        "test",
-                        "/ip4/127.0.0.1/tcp/8135".parse::<Multiaddr>().unwrap(),
-                        vec![P2PNode {
-                            peer_id: peer_id.clone(),
-                            address: "/ip4/127.0.0.1/tcp/8134".parse::<Multiaddr>().unwrap(),
-                        }],
-                        &user_defined,
-                    )
-                    .await.unwrap();
-
-            karak_p2p.publish_message("test", "this is a test").unwrap()
-            });
-
-        let user_defined = UserDefined;
-        let mut karak_p2p = KarakP2P { swarm: None };
-        karak_p2p.create_swarm().unwrap();
-        let peer_id = karak_p2p.peer_id().clone();
-            karak_p2p
-                .start_listening(
+            let karak_p2p_server = karak_p2p
+                .start_server(
                     "test",
                     "/ip4/127.0.0.1/tcp/8134".parse::<Multiaddr>().unwrap(),
                     vec![],
-                    &user_defined,
                 )
-                .await.unwrap();
-        karak_p2p.publish_message("test", "this is a test").unwrap();
+                .unwrap();
+            tx.send(peer_id).unwrap();
+            karak_p2p_server
+                .start_listening(|_peer_id, _id, message| {
+                    println!(
+                        "This is the incoming message: {:?}",
+                        String::from_utf8_lossy(&message.data)
+                    );
+                    panic!("Intended panic for testing")
+                })
+                .await
+                .unwrap();
+        });
 
-            thread::sleep(Duration::from_secs(15));
-        Ok(())
+        let handle2 = tokio::spawn(async move {
+            let mut karak_p2p = KarakP2P {
+                swarm: None,
+                message_receiver: message_receiver_two,
+            };
+            karak_p2p.create_swarm().unwrap();
+            let peer_id = match rx.await {
+                Ok(v) => v,
+                Err(_) => panic!(),
+            };
+            karak_p2p
+                .start_server(
+                    "test",
+                    "/ip4/127.0.0.1/tcp/8136".parse::<Multiaddr>().unwrap(),
+                    vec![P2PNode {
+                        peer_id: peer_id,
+                        address: "/ip4/127.0.0.1/tcp/8134".parse::<Multiaddr>().unwrap(),
+                    }],
+                )
+                .unwrap()
+                .start_listening(|_peer_id, _id, message| {
+                    println!(
+                        "This is the incoming message: {:?}",
+                        String::from_utf8_lossy(&message.data)
+                    );
+                    panic!()
+                })
+                .await
+                .unwrap();
+        });
+        let handle3 = tokio::spawn(async move {
+         // thread::sleep(Duration::from_secs(20));
+            tokio::time::sleep(Duration::from_secs(10)).await;
+            message_sender_two
+                .send(GossipMessage {
+                    topic: "test".to_string(),
+                    message: "test message".to_string(),
+                })
+                .await
+                .unwrap();
+        });
+
+        let _ = tokio::join!(handle1 , handle3);
+        panic!("Intended panic for testing")
     }
 }
