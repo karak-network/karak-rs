@@ -1,39 +1,16 @@
-// Copyright 2018 Parity Technologies (UK) Ltd.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the "Software"),
-// to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-// DEALINGS IN THE SOFTWARE.
-
-#![doc = include_str!("../README.md")]
-
 use futures::stream::StreamExt;
-use libp2p::gossipsub::{Message, MessageId};
 use libp2p::{
-    gossipsub, kad, noise,
-    swarm::{NetworkBehaviour, Swarm, SwarmEvent},
-    tcp, yamux,
+    gossipsub::{self, Message, MessageId},
+    kad, noise, swarm::{NetworkBehaviour, Swarm, SwarmEvent},
+    tcp, yamux, Multiaddr, PeerId,
 };
-use libp2p::{Multiaddr, PeerId};
-use std::collections::hash_map::DefaultHasher;
-use std::error::Error;
-use std::hash::{Hash, Hasher};
-use std::time::Duration;
-use tokio::sync::mpsc;
-use tokio::{io, select};
+use std::{
+    collections::hash_map::DefaultHasher,
+    error::Error,
+    hash::{Hash, Hasher},
+    time::Duration,
+};
+use tokio::{sync::mpsc, io, select};
 use tracing_subscriber::EnvFilter;
 
 // We create a custom network behaviour that combines Gossipsub and Kademlia.
@@ -94,8 +71,6 @@ impl KarakP2P {
                         gossipsub::MessageAuthenticity::Signed(key.clone()),
                         gossipsub_config,
                     )?;
-
-                    println!("peer id: {}", &key.public().to_peer_id());
 
                     let store = kad::store::MemoryStore::new(key.public().to_peer_id());
                     let kademlia = kad::Behaviour::new(key.public().to_peer_id(), store);
