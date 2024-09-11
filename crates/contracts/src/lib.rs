@@ -25,3 +25,4 @@ pub mod core {
 }
 
 pub use core::Core;
+pub use icore::ICore;
