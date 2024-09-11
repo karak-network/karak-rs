@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.2"
+version = "0.2.0"
 license = "BUSL-1.1"
 authors = ["Andalusia Labs"]
 repository = "https://github.com/karak-network/karak-rs"
