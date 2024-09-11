@@ -8,6 +8,6 @@ repository = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-karak-kms = { version = "0.1.2", path = "../kms" }
-karak-contracts = { version = "0.1.2", path = "../contracts" }
 karak-bls = { version = "0.1.2", path = "../bls" }
+karak-contracts = { version = "0.1.2", path = "../contracts" }
+karak-kms = { version = "0.1.2", path = "../kms" }

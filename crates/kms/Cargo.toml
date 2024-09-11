@@ -9,28 +9,25 @@ edition = { workspace = true }
 
 [dependencies]
 aes = { version = "0.7", features = ["ctr"] }
-alloy = { workspace = true, features = ["signer-keystore"] }
-alloy-serde = "0.3.3"
-alloy-sol-types = "0.7.7"
+alloy = { workspace = true }
+alloy-sol-types = "0.8.3"
 ark-bn254 = "0.4.0"
 ark-ec = "0.4.2"
 ark-ff = "0.4.2"
 ark-serialize = "0.4.2"
-async-trait = "0.1.82"
-aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
-aws-sdk-secretsmanager = "1.40.0"
+aws-config = { version = "1.5.6", features = ["behavior-version-latest"] }
+aws-sdk-secretsmanager = "1.46.0"
 bincode = "1.3.3"
-block-modes = "0.8"
+block-modes = "0.9"
 bs58 = "0.5.1"
 hex = "0.4"
 rand = "0.8.5"
-scrypt = "0.10"
+scrypt = "0.11"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha3 = "0.10"
-thiserror = "1.0.62"
+thiserror = "1.0.63"
 tokio = { workspace = true }
-url = { version = "2.5.2", features = ["serde"] }
 
 [dev-dependencies]
 alloy = { workspace = true, features = ["node-bindings"] }

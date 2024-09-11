@@ -54,7 +54,7 @@ pub fn encrypt_data_v3(
     rng.fill_bytes(&mut salt);
 
     let mut derived_key = vec![0u8; scrypt_dklen];
-    let scrypt_params = Params::new(scrypt_log_n, scrypt_r, scrypt_p)?;
+    let scrypt_params = Params::new(scrypt_log_n, scrypt_r, scrypt_p, scrypt_dklen)?;
     scrypt(auth, &salt, &scrypt_params, &mut derived_key)?;
 
     let encrypt_key = &derived_key[..16];
@@ -108,7 +108,7 @@ pub fn decrypt_data_v3(
     let iv = hex::decode(&crypto.cipher_params["iv"])?;
 
     // Derive the key using scrypt
-    let scrypt_params = Params::new(scrypt_log_n, scrypt_r, scrypt_p)?;
+    let scrypt_params = Params::new(scrypt_log_n, scrypt_r, scrypt_p, scrypt_dklen)?;
     let mut derived_key = vec![0u8; scrypt_dklen];
     scrypt(auth, &salt, &scrypt_params, &mut derived_key)?;
 

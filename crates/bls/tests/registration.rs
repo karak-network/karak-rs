@@ -10,6 +10,7 @@ use alloy::{
     sol_types::SolValue,
     transports::Transport,
 };
+use bls_sdk::BlsSdk::BlsSdkInstance;
 use bytecode::Bytecode;
 use eyre::Result;
 use karak_bls::keypair_signer::KeypairSigner;
@@ -19,24 +20,31 @@ use karak_kms::keypair::{
     traits::Keypair,
 };
 use karak_kms::signer::traits::Signer;
-use BlsSdk::BlsSdkInstance;
 use Verify::VerifyInstance;
 
 mod bytecode;
 
-sol!(
-    #[allow(missing_docs)]
-    #[sol(rpc)]
-    BlsSdk,
-    "tests/artifacts/BlsSdk.json",
-);
+mod bls_sdk {
+    use alloy::sol;
 
-sol!(
-    #[allow(missing_docs)]
-    #[sol(rpc)]
-    BN254,
-    "tests/artifacts/BN254.json",
-);
+    sol!(
+        #[allow(missing_docs)]
+        #[sol(rpc)]
+        BlsSdk,
+        "tests/artifacts/BlsSdk.json",
+    );
+}
+
+mod verify {
+    use alloy::sol;
+
+    sol!(
+        #[allow(missing_docs)]
+        #[sol(rpc)]
+        BN254,
+        "tests/artifacts/BN254.json",
+    );
+}
 
 // import {BN254} from "./utils/BN254.sol";
 // import {BlsSdk} from "./BlsSdk.sol";
@@ -60,7 +68,7 @@ sol!(
 async fn deploy_bls_sdk<T: Transport + Clone, P: Provider<T>>(
     provider: P,
 ) -> Result<BlsSdkInstance<T, P>> {
-    let bls_sdk = BlsSdk::deploy(provider).await?;
+    let bls_sdk = bls_sdk::BlsSdk::deploy(provider).await?;
     println!("BlsSdk deployed at: {}", bls_sdk.address());
     Ok(bls_sdk)
 }
