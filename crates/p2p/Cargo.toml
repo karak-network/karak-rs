@@ -7,9 +7,6 @@ authors = { workspace = true }
 repository = { workspace = true }
 edition = { workspace = true }
 
-[package.metadata.release]
-release = false
-
 [dependencies]
 tokio = { workspace = true, features = ["full"] }
 async-trait = "0.1"
@@ -17,3 +14,4 @@ libp2p = { version = "0.54.1", features = [ "tokio", "gossipsub", "kad", "noise"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 futures = "0.3.30"
+thiserror = "1.0.63"
