@@ -8,18 +8,19 @@ repository = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-karak-kms = { version = "0.1.1", path = "../kms" }
-karak-contracts = { version = "0.1.1", path = "../contracts" }
+alloy = { workspace = true }
 ark-bn254 = "0.4.0"
 ark-ec = "0.4.2"
 ark-ff = "0.4.2"
 ark-serialize = "0.4.2"
-thiserror = "1.0.62"
-alloy = { workspace = true }
-trait-variant = "0.1.2"
 eyre = "0.6.12"
+karak-contracts = { version = "0.2.0", path = "../contracts" }
+karak-kms = { version = "0.2.0", path = "../kms" }
+thiserror = "1.0.63"
+trait-variant = "0.1.2"
 
 [dev-dependencies]
-serde = { version = "1.0.207", features = ["derive"] }
-serde_json = "1.0.125"
+alloy = { workspace = true, features = ["node-bindings"] }
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
 tokio = { workspace = true }

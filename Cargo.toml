@@ -3,12 +3,12 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.2"
+version = "0.2.0"
 license = "BUSL-1.1"
 authors = ["Andalusia Labs"]
 repository = "https://github.com/karak-network/karak-rs"
 edition = "2021"
 
 [workspace.dependencies]
-alloy = { version = "0.2.1", features = ["full"] }
-tokio = { version = "1.38.0", features = ["full"] }
+alloy = { version = "0.3.3", features = ["full"] }
+tokio = { version = "1.40.0", features = ["full"] }
