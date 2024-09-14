@@ -33,6 +33,8 @@ pub enum KarakP2PError {
     ListenError(#[from] TransportError<std::io::Error>),
     #[error("libp2p publish failed")]
     PublishError(#[from] libp2p::gossipsub::PublishError),
+    #[error("builder error")]
+    BuilderError,
 }
 
 // We create a custom network behaviour that combines Gossipsub and Kademlia.
@@ -71,10 +73,8 @@ impl KarakP2P {
                 tcp::Config::default(),
                 noise::Config::new,
                 yamux::Config::default,
-            )
-            .map_err(KarakP2PError::NoiseError)?
-            .with_dns()
-            .map_err(KarakP2PError::TransportError)?
+            )?
+            .with_dns()?
             .with_behaviour(|key| {
                 // To content-address message, we can take the hash of message and use it as an ID.
                 let message_id_fn = |message: &gossipsub::Message| {
@@ -89,7 +89,7 @@ impl KarakP2P {
                     .validation_mode(gossipsub::ValidationMode::Strict) // This sets the kind of message validation. The default is Strict (enforce message signing)
                     .message_id_fn(message_id_fn) // content-address messages. No two messages of the same content will be propagated.
                     .build()
-                    .map_err(|msg| io::Error::new(io::ErrorKind::Other, msg))?; // Temporary hack because `build` does not return a proper `std::error::Error`.
+                    .map_err(|_| KarakP2PError::BuilderError)?; // Temporary hack because `build` does not return a proper `std::error::Error`.
 
                 // build a gossipsub network behaviour
                 let gossipsub = gossipsub::Behaviour::new(
@@ -105,7 +105,7 @@ impl KarakP2P {
                     kademlia,
                 })
             })
-            .map_err(|_private_error| KarakP2PError::BehaviourError)?
+            .map_err(|_| KarakP2PError::BehaviourError)?
             .with_swarm_config(|c| {
                 c.with_idle_connection_timeout(Duration::from_secs(idle_timeout_duration))
             })
