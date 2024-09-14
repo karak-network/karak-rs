@@ -11,7 +11,11 @@ use std::{
     time::Duration,
 };
 use thiserror::Error;
-use tokio::{io, select, sync::{mpsc, oneshot}};
+use tokio::{
+    io, select,
+    sync::{mpsc, oneshot},
+};
+use tracing;
 
 #[derive(Debug, Error)]
 pub enum KarakP2PError {
@@ -116,7 +120,7 @@ impl KarakP2P {
         swarm.listen_on(listen_addr)?;
 
         for peer in &bootstrap_addrs {
-            println!("Adding peer: {:?}, {:?}", peer.peer_id, peer.address);
+            tracing::info!("Adding peer: {:?}, {:?}", peer.peer_id, peer.address);
             swarm
                 .behaviour_mut()
                 .kademlia
@@ -134,31 +138,41 @@ impl KarakP2P {
         on_incoming_message: fn(PeerId, MessageId, Message),
         extra_fields: Option<fn()>,
     ) -> Result<(), KarakP2PError> {
-        loop {
-            select! {
-                Ok(_) = &mut self.termination_receiver => {
-                    panic!("Termination message received");
-                }
-                event = self.swarm.select_next_some() => match event {
-                    SwarmEvent::Behaviour(KarakP2PBehaviourEvent::Gossipsub(gossipsub::Event::Message {
-                        propagation_source: peer_id,
-                        message_id: id,
-                        message,
-                    })) => on_incoming_message(peer_id, id, message)                        ,
-                    SwarmEvent::NewListenAddr { address, .. } => {
-                        println!("Local node is listening on {address}");
-                    }
-                    _ => {}
-                }
+        select! {
+            Ok(_) = &mut self.termination_receiver => {
+                tracing::info!("Termination message received");
             }
-
-            if let Some(mut fields) = extra_fields {
-                fields();
+            _ = async {
+                while let Some(event) = self.swarm.next().await {
+                    match event {
+                        SwarmEvent::Behaviour(KarakP2PBehaviourEvent::Gossipsub(gossipsub::Event::Message {
+                            propagation_source: peer_id,
+                            message_id: id,
+                            message,
+                        })) => on_incoming_message(peer_id, id, message)                        ,
+                        SwarmEvent::NewListenAddr { address, .. } => {
+                            tracing::info!("Local node is listening on {address}");
+                        }
+                        _ => {}
+                    }
+                }
+            } => {
+                tracing::info!("Swarm terminated");
             }
         }
+
+        if let Some(mut fields) = extra_fields {
+            fields();
+        }
+
+        Ok(())
     }
 
-    fn publish_message<M: AsRef<[u8]>>(&mut self, topic: &str, message: M) -> Result<(), KarakP2PError> {
+    fn publish_message<M: AsRef<[u8]>>(
+        &mut self,
+        topic: &str,
+        message: M,
+    ) -> Result<(), KarakP2PError> {
         let topic_hash = gossipsub::IdentTopic::new(topic);
         self.swarm
             .behaviour_mut()
