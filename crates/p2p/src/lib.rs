@@ -133,10 +133,9 @@ impl KarakP2P {
         })
     }
 
-    async fn start_listening(
+    async fn start_listening<F: Fn(PeerId, MessageId, Message)>(
         &mut self,
-        on_incoming_message: fn(PeerId, MessageId, Message),
-        extra_fields: Option<fn()>,
+        on_incoming_message: F,
     ) -> Result<(), KarakP2PError> {
         select! {
             Ok(_) = &mut self.termination_receiver => {
@@ -159,10 +158,6 @@ impl KarakP2P {
             } => {
                 tracing::info!("Swarm terminated");
             }
-        }
-
-        if let Some(mut fields) = extra_fields {
-            fields();
         }
 
         Ok(())
