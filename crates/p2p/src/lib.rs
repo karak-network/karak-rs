@@ -60,7 +60,7 @@ pub struct KarakP2P {
 }
 
 impl KarakP2P {
-    pub fn create_and_start_swarm<M: AsRef<[u8]>>(
+    pub fn create_and_start_swarm(
         topic: &str,
         listen_addr: Multiaddr,
         bootstrap_addrs: Vec<P2PNode>,
