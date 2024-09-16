@@ -1,0 +1,77 @@
+[
+  {
+    "type": "function",
+    "name": "getStakeDistributionUSDForOperators",
+    "inputs": [
+      {
+        "name": "dss",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "operators",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "oracleSpecificData",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IStakeViewer.StakeDistribution",
+        "components": [
+          {
+            "name": "globalUsdValue",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "operators",
+            "type": "tuple[]",
+            "internalType": "struct IStakeViewer.OperatorStake[]",
+            "components": [
+              {
+                "name": "operator",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "totalUsdValue",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "components",
+                "type": "tuple[]",
+                "internalType": "struct IStakeViewer.StakeComponent[]",
+                "components": [
+                  {
+                    "name": "erc20",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  {
+                    "name": "balance",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "usdValue",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  }
+]
