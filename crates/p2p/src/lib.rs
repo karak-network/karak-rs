@@ -39,17 +39,17 @@ pub enum KarakP2PError {
 
 // We create a custom network behaviour that combines Gossipsub and Kademlia.
 #[derive(NetworkBehaviour)]
-struct KarakP2PBehaviour {
+pub struct KarakP2PBehaviour {
     gossipsub: gossipsub::Behaviour,
     kademlia: kad::Behaviour<kad::store::MemoryStore>,
 }
 
-struct P2PNode {
+pub struct P2PNode {
     pub peer_id: PeerId,
     pub address: Multiaddr,
 }
 
-struct GossipMessage<M: AsRef<[u8]>> {
+pub struct GossipMessage<M: AsRef<[u8]>> {
     topic: String,
     message: M,
 }
