@@ -10,3 +10,5 @@ edition = { workspace = true }
 [dependencies]
 karak-contracts = { workspace = true }
 karak-kms = { workspace = true }
+karak-bls = { version = "0.1.1", path = "../bls" }
+karak-p2p = { version = "0.1.1", path = "../p2p" }
