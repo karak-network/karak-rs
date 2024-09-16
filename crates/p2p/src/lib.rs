@@ -12,8 +12,8 @@ use std::{
 };
 use thiserror::Error;
 use tokio::{
-    io, select,
-    sync::{mpsc, oneshot},
+    select,
+    sync::{oneshot},
 };
 use tracing;
 
