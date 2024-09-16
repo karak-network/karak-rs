@@ -60,7 +60,7 @@ pub struct KarakP2P {
 }
 
 impl KarakP2P {
-    fn create_and_start_swarm<M: AsRef<[u8]>>(
+    pub fn create_and_start_swarm<M: AsRef<[u8]>>(
         topic: &str,
         listen_addr: Multiaddr,
         bootstrap_addrs: Vec<P2PNode>,
@@ -133,7 +133,7 @@ impl KarakP2P {
         })
     }
 
-    async fn start_listening<F: Fn(PeerId, MessageId, Message)>(
+    pub async fn start_listening<F: Fn(PeerId, MessageId, Message)>(
         &mut self,
         on_incoming_message: F,
     ) -> Result<(), KarakP2PError> {
@@ -163,7 +163,7 @@ impl KarakP2P {
         Ok(())
     }
 
-    fn publish_message<M: AsRef<[u8]>>(
+    pub fn publish_message<M: AsRef<[u8]>>(
         &mut self,
         topic: &str,
         message: M,
@@ -176,7 +176,7 @@ impl KarakP2P {
         Ok(())
     }
 
-    fn peer_id(&mut self) -> PeerId {
+    pub fn peer_id(&mut self) -> PeerId {
         self.swarm.local_peer_id().to_owned()
     }
 }
