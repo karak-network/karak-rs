@@ -13,7 +13,7 @@ use std::{
 use thiserror::Error;
 use tokio::{
     select,
-    sync::{oneshot},
+    sync::{mpsc, oneshot},
 };
 use tracing;
 
@@ -54,17 +54,19 @@ pub struct GossipMessage<M: AsRef<[u8]>> {
     message: M,
 }
 
-pub struct KarakP2P {
+pub struct KarakP2P<M: AsRef<[u8]>> {
     swarm: Swarm<KarakP2PBehaviour>,
     termination_receiver: oneshot::Receiver<()>,
+    message_receiver: mpsc::Receiver<GossipMessage<M>>,
 }
 
-impl KarakP2P {
+impl<M: AsRef<[u8]>> KarakP2P<M> {
     pub fn create_and_start_swarm(
         topic: &str,
         listen_addr: Multiaddr,
         bootstrap_addrs: Vec<P2PNode>,
-        message_receiver: oneshot::Receiver<()>,
+        termination_receiver: oneshot::Receiver<()>,
+        message_receiver: mpsc::Receiver<GossipMessage<M>>,
         idle_timeout_duration: u64,
     ) -> Result<Self, KarakP2PError> {
         let mut swarm = libp2p::SwarmBuilder::with_new_identity()
@@ -129,7 +131,8 @@ impl KarakP2P {
 
         Ok(KarakP2P {
             swarm,
-            termination_receiver: message_receiver,
+            termination_receiver: termination_receiver,
+            message_receiver: message_receiver,
         })
     }
 
@@ -137,37 +140,32 @@ impl KarakP2P {
         &mut self,
         on_incoming_message: F,
     ) -> Result<(), KarakP2PError> {
-        select! {
-            Ok(_) = &mut self.termination_receiver => {
-                tracing::info!("Termination message received");
-            }
-            _ = async {
-                while let Some(event) = self.swarm.next().await {
-                    match event {
-                        SwarmEvent::Behaviour(KarakP2PBehaviourEvent::Gossipsub(gossipsub::Event::Message {
-                            propagation_source: peer_id,
-                            message_id: id,
-                            message,
-                        })) => on_incoming_message(peer_id, id, message)                        ,
-                        SwarmEvent::NewListenAddr { address, .. } => {
-                            tracing::info!("Local node is listening on {address}");
-                        }
-                        _ => {}
-                    }
+        loop {
+            select! {
+                Ok(_) = &mut self.termination_receiver => {
+                    tracing::info!("Termination message received");
                 }
-            } => {
-                tracing::info!("Swarm terminated");
+                Some(gossip_message) = self.message_receiver.recv()=> {
+                    self.publish_message(&gossip_message.topic, gossip_message.message).unwrap();
+                }
+                event = self.swarm.select_next_some() => match event {
+                    SwarmEvent::Behaviour(KarakP2PBehaviourEvent::Gossipsub(gossipsub::Event::Message {
+                        propagation_source: peer_id,
+                        message_id: id,
+                        message,
+                    })) => on_incoming_message(peer_id, id, message),
+                    SwarmEvent::NewListenAddr { address, .. } => {
+                        println!("Local node is listening on {address}");
+                    }
+                    _ => {}
+                }
             }
         }
 
         Ok(())
     }
 
-    pub fn publish_message<M: AsRef<[u8]>>(
-        &mut self,
-        topic: &str,
-        message: M,
-    ) -> Result<(), KarakP2PError> {
+    pub fn publish_message(&mut self, topic: &str, message: M) -> Result<(), KarakP2PError> {
         let topic_hash = gossipsub::IdentTopic::new(topic);
         self.swarm
             .behaviour_mut()
@@ -186,17 +184,19 @@ impl KarakP2P {
 //     use std::thread;
 
 //     use futures::{FutureExt, TryFutureExt};
-//     use io::Interest;
 //     use tokio::sync::oneshot;
 
 //     use super::*;
 
 //     #[tokio::test]
+//     // #[should_panic(expected = "Intended panic for testing")]
 //     async fn test_entire_flow() -> () {
 //         let (message_sender_one, message_receiver_one) =
 //             mpsc::channel::<GossipMessage<String>>(100);
 //         let (message_sender_two, message_receiver_two) =
 //             mpsc::channel::<GossipMessage<String>>(100);
+//         let (termination_signal_one, termination_receiver_one) = oneshot::channel::<()>();
+//         let (termination_signal_two, termination_receiver_two) = oneshot::channel::<()>();
 //         let (tx, rx) = oneshot::channel::<PeerId>();
 
 //         let handle1 = tokio::spawn(async move {
@@ -204,6 +204,7 @@ impl KarakP2P {
 //                 "test",
 //                 "/ip4/127.0.0.1/tcp/8134".parse::<Multiaddr>().unwrap(),
 //                 vec![],
+//                 termination_receiver_one,
 //                 message_receiver_one,
 //                 60,
 //             )
@@ -213,7 +214,7 @@ impl KarakP2P {
 //             tx.send(peer_id).unwrap();
 
 //             karak_p2p_server
-//                 .start_listening(|_peer_id, _id, message| {
+//                 .start_listening(move|_peer_id, _id, message| {
 //                     println!(
 //                         "This is the incoming message: {}",
 //                         String::from_utf8_lossy(&message.data)
@@ -236,23 +237,22 @@ impl KarakP2P {
 //                     peer_id: peer_id,
 //                     address: "/ip4/127.0.0.1/tcp/8134".parse::<Multiaddr>().unwrap(),
 //                 }],
+//                 termination_receiver_two,
 //                 message_receiver_two,
 //                 60,
 //             )
 //             .unwrap()
-//             .start_listening(|_peer_id, _id, message| {
+//             .start_listening(move |_peer_id, _id, message| {
 //                 println!(
 //                     "This is the incoming message: {}",
 //                     String::from_utf8_lossy(&message.data)
 //                 );
-//                 panic!()
 //             })
 //             .await
 //             .unwrap();
 //         });
 //         let handle3 = tokio::spawn(async move {
-//             // thread::sleep(Duration::from_secs(20));
-//             tokio::time::sleep(Duration::from_secs(10)).await;
+//             tokio::time::sleep(Duration::from_secs(15)).await;
 //             message_sender_two
 //                 .send(GossipMessage {
 //                     topic: "test".to_string(),
