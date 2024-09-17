@@ -13,4 +13,6 @@ pub enum Config {
         #[arg(short, long, action)]
         overwrite: bool,
     },
+    /// Get config
+    Get,
 }
