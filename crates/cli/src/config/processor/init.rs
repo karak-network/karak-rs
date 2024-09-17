@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use color_eyre::eyre;
+use eyre::eyre;
 use tokio::io::AsyncWriteExt;
 
 use crate::config::{
@@ -25,6 +26,13 @@ pub async fn process_init(path: Option<String>, overwrite: bool) -> eyre::Result
     let default_config = Config {
         version: ConfigVersion::V0,
         chain: None,
+        keypair_dir: PathBuf::from(
+            dirs_next::home_dir()
+                .ok_or(eyre!("Home directory not found"))?
+                .join(".config")
+                .join("karak")
+                .join("keypairs"),
+        ),
     };
 
     let config_str = serde_json::to_string_pretty(&default_config)? + "\n";
@@ -33,7 +41,7 @@ pub async fn process_init(path: Option<String>, overwrite: bool) -> eyre::Result
     let mut file = tokio::fs::File::create(&path).await?;
     file.write_all(config_str.as_bytes()).await?;
 
-    println!("Config file initialized at {path_str}");
+    println!("Config file initialized at {path_str}. If your path is not the default, make sure to export the custom path in the KARAK_CONFIG_PATH environment variable.");
 
     Ok(())
 }

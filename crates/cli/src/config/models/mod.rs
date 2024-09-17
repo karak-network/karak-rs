@@ -1,9 +1,12 @@
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     pub version: ConfigVersion,
     pub chain: Option<Chain>,
+    pub keypair_dir: PathBuf,
 }
 
 #[derive(Serialize, Deserialize)]
