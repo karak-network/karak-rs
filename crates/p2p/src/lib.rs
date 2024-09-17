@@ -140,10 +140,14 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
         })
     }
 
-    pub async fn start_listening<F: Fn(PeerId, MessageId, Message) + Future<Output = ()> + Send + Sync + 'static>(
+    pub async fn start_listening<F, Fut>(
         &mut self,
         on_incoming_message: F,
-    ) -> Result<(), KarakP2PError> {
+    ) -> Result<(), KarakP2PError> 
+    where 
+    F: Fn(PeerId, MessageId, Message) -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = ()> + Send,
+    {
         loop {
             select! {
                 Ok(_) = &mut self.termination_receiver => {
@@ -157,7 +161,7 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
                         propagation_source: peer_id,
                         message_id: id,
                         message,
-                    })) => on_incoming_message(peer_id, id, message),
+                    })) => on_incoming_message(peer_id, id, message).await,
                     SwarmEvent::NewListenAddr { address, .. } => {
                         println!("Local node is listening on {address}");
                     }
