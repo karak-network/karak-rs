@@ -6,9 +6,7 @@ use libp2p::{
     tcp, yamux, Multiaddr, PeerId, TransportError,
 };
 use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-    time::Duration,
+    collections::hash_map::DefaultHasher, future::Future, hash::{Hash, Hasher}, time::Duration
 };
 use thiserror::Error;
 use tokio::{
@@ -142,7 +140,7 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
         })
     }
 
-    pub async fn start_listening<F: Fn(PeerId, MessageId, Message)>(
+    pub async fn start_listening<F: Fn(PeerId, MessageId, Message) + Future<Output = ()> + Send + Sync + 'static>(
         &mut self,
         on_incoming_message: F,
     ) -> Result<(), KarakP2PError> {
