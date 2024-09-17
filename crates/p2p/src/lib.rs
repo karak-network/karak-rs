@@ -54,6 +54,12 @@ pub struct GossipMessage<M: AsRef<[u8]>> {
     message: M,
 }
 
+impl<M: AsRef<[u8]>> GossipMessage<M> {
+    pub fn new(topic: String, message: M) -> Self {
+        GossipMessage { topic, message }
+    }
+}
+
 pub struct KarakP2P<M: AsRef<[u8]>> {
     swarm: Swarm<KarakP2PBehaviour>,
     termination_receiver: oneshot::Receiver<()>,
