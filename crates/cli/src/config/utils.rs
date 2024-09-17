@@ -22,3 +22,10 @@ pub fn get_config() -> Result<Config, ConfigError> {
 
     Ok(serde_json::from_str(&contents)?)
 }
+
+pub fn write_config(config: Config) -> color_eyre::eyre::Result<()> {
+    let config_path = get_config_path()?;
+    let config_str = serde_json::to_string_pretty(&config)?;
+    fs::write(config_path, config_str)?;
+    Ok(())
+}
