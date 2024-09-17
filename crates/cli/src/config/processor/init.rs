@@ -1,15 +1,14 @@
 use std::path::PathBuf;
 
-use color_eyre::eyre;
-use eyre::eyre;
+use color_eyre::eyre::eyre;
 use tokio::io::AsyncWriteExt;
 
 use crate::config::{
     env::get_config_path,
-    models::{Config, ConfigVersion},
+    models::{Config, ConfigVersion, Keystore},
 };
 
-pub async fn process_init(path: Option<String>, overwrite: bool) -> eyre::Result<()> {
+pub async fn process_init(path: Option<String>, overwrite: bool) -> color_eyre::eyre::Result<()> {
     let path = match path {
         Some(path) => PathBuf::from(path),
         None => get_config_path()?,
@@ -20,19 +19,21 @@ pub async fn process_init(path: Option<String>, overwrite: bool) -> eyre::Result
 
     let config_exists = tokio::fs::metadata(&path).await.is_ok();
     if config_exists && !overwrite {
-        return Err(eyre::eyre!("Config file already exists at {path_str}"));
+        return Err(eyre!("Config file already exists at {path_str}"));
     }
 
     let default_config = Config {
         version: ConfigVersion::V0,
         chain: None,
-        keypair_dir: PathBuf::from(
-            dirs_next::home_dir()
-                .ok_or(eyre!("Home directory not found"))?
-                .join(".config")
-                .join("karak")
-                .join("keypairs"),
-        ),
+        keystore: Keystore::Local {
+            path: PathBuf::from(
+                dirs_next::home_dir()
+                    .ok_or(eyre!("Home directory not found"))?
+                    .join(".config")
+                    .join("karak")
+                    .join("keypairs"),
+            ),
+        },
     };
 
     let config_str = serde_json::to_string_pretty(&default_config)? + "\n";
@@ -41,7 +42,9 @@ pub async fn process_init(path: Option<String>, overwrite: bool) -> eyre::Result
     let mut file = tokio::fs::File::create(&path).await?;
     file.write_all(config_str.as_bytes()).await?;
 
-    println!("Config file initialized at {path_str}. If your path is not the default, make sure to export the custom path in the KARAK_CONFIG_PATH environment variable.");
+    println!(
+        "Config file initialized at {path_str}. If your path is not the default, make sure to export the custom path in the KARAK_CONFIG_PATH environment variable."
+    );
 
     Ok(())
 }
