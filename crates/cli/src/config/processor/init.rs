@@ -26,13 +26,11 @@ pub fn process_init(path: Option<String>, overwrite: bool) -> color_eyre::eyre::
         version: ConfigVersion::V0,
         chain: None,
         keystore: Keystore::Local {
-            path: PathBuf::from(
-                dirs_next::home_dir()
-                    .ok_or(eyre!("Home directory not found"))?
-                    .join(".config")
-                    .join("karak")
-                    .join("keypairs"),
-            ),
+            path: dirs_next::home_dir()
+                .ok_or(eyre!("Home directory not found"))?
+                .join(".config")
+                .join("karak")
+                .join("keypairs"),
         },
     };
 
