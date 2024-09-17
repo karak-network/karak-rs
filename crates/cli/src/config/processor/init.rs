@@ -27,7 +27,7 @@ pub async fn process_init(path: Option<String>, overwrite: bool) -> eyre::Result
         chain: None,
     };
 
-    let config_str = serde_json::to_string_pretty(&default_config)?;
+    let config_str = serde_json::to_string_pretty(&default_config)? + "\n";
 
     tokio::fs::create_dir_all(&path.parent().expect("expected config path parent")).await?;
     let mut file = tokio::fs::File::create(&path).await?;
