@@ -1,6 +1,9 @@
 pub mod env;
 pub mod models;
 pub mod processor;
+mod utils;
+
+pub use utils::*;
 
 use clap::Subcommand;
 
