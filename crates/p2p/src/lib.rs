@@ -136,6 +136,8 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
                 .add_address(&peer.peer_id, peer.address.clone());
         }
 
+        tracing::info!("Swarm peer id: {:?}", swarm.local_peer_id());
+
         Ok(KarakP2P {
             swarm,
             termination_receiver: termination_receiver,
@@ -157,7 +159,9 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
                     tracing::info!("Termination message received");
                 }
                 Some(gossip_message) = self.message_receiver.recv()=> {
-                    self.publish_message(&gossip_message.topic, gossip_message.message).unwrap();
+                    self.publish_message(&gossip_message.topic, gossip_message.message).unwrap_or_else(|e| {
+                        tracing::error!("Failed to publish message: {:?}", e);
+                    });
                 }
                 event = self.swarm.select_next_some() => match event {
                     SwarmEvent::Behaviour(KarakP2PBehaviourEvent::Gossipsub(gossipsub::Event::Message {
@@ -167,6 +171,9 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
                     })) => on_incoming_message(peer_id, id, message).await,
                     SwarmEvent::NewListenAddr { address, .. } => {
                         println!("Local node is listening on {address}");
+                    }
+                    SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+                        tracing::info!("Connection established with peer: {:?}", peer_id);
                     }
                     _ => {}
                 }
