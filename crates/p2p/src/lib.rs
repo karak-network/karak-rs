@@ -170,7 +170,7 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
                         message,
                     })) => on_incoming_message(peer_id, id, message).await,
                     SwarmEvent::NewListenAddr { address, .. } => {
-                        println!("Local node is listening on {address}");
+                        tracing::info!("Local node is listening on {address}");
                     }
                     SwarmEvent::ConnectionEstablished { peer_id, .. } => {
                         tracing::info!("Connection established with peer: {:?}", peer_id);
