@@ -70,6 +70,34 @@ pub fn verify_signature<B: Borrow<[u8; 32]>>(
     Ok(())
 }
 
+pub fn verify_signature<B: Borrow<[u8; 32]>>(
+    public_key_g1: G1Pubkey,
+    public_key_g2: G2Pubkey,
+    signature: &Signature,
+    message: B,
+) -> KeypairSignerResult<()>{
+
+    let signature_plus_pubkey_g1 = signature + public_key_g1;
+    let hash_plus_generator_g1 =
+        G1Point::from(hash_to_g1_point(message)) + G1Point::generator();
+
+    let gen_g2 = G2Affine::generator();
+
+    let neg_sig = signature_plus_pubkey_g1.0.neg();
+
+    let p = [hash_plus_generator_g1.0, neg_sig];
+    let q = [pubkey_g2.0, gen_g2];
+
+    // e((H(m)+G1), sk * G2) * e(-(sk * (H(m) + G1)), G2) =? 1
+    let multi_pairing = Bn254::multi_pairing(p, q);
+
+    if !multi_pairing.0.is_one() {
+        return Err(KeypairSignerError::InvalidSignature);
+    }
+
+    Ok(())
+}
+
 // Implements the hash-and-check algorithm
 // see https://hackmd.io/@benjaminion/bls12-381#Hash-and-check
 // Curve: y^2 = x^3 + 3
