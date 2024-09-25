@@ -81,9 +81,7 @@ impl Component for Dss {
                 Some(("generate", sub_args)) => {
                     let keypair_args = KeypairArgs {
                         keystore: sub_args.get_one::<Keystore>("keystore").unwrap().to_owned(),
-                        passphrase: Some(
-                            sub_args.get_one::<String>("passphrase").unwrap().to_owned(),
-                        ),
+                        passphrase: sub_args.get_one::<String>("passphrase").cloned(),
                     };
 
                     let curve = sub_args.get_one::<Curve>("curve").unwrap().to_owned();
