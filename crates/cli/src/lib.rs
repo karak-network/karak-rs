@@ -1,6 +1,10 @@
-pub mod bls;
+pub mod cli;
+pub mod components;
 pub mod config;
-pub mod keypair;
-pub mod operator;
-pub mod root;
-pub mod shared;
+pub mod error;
+
+mod common;
+
+pub use cli::{Cli, Runner};
+pub use config::{Config, Profile};
+pub use error::CliError;

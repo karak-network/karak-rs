@@ -18,7 +18,7 @@ use karak_kms::{
 };
 use url::Url;
 
-use crate::shared::{Encoding, Keystore};
+use crate::common::{Encoding, Keystore};
 
 pub struct RegistrationArgs<'a> {
     pub bn254_keypair_location: &'a str,
@@ -40,7 +40,9 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
         None => &rpassword::prompt_password("Enter BN254 keypair passphrase: ")?,
     };
     let bn254_keypair: bn254::Keypair = match args.bn254_keystore {
+        // TODO: use the path from profile
         Keystore::Local => {
+            // TODO: Can take reference to file_path in LocalEncryptedKeystore instead of consuming the p
             let local_keystore = keystore::local::LocalEncryptedKeystore::new(PathBuf::from_str(
                 args.bn254_keypair_location,
             )?);
@@ -55,6 +57,7 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
     };
 
     let secp256k1_keypair = match args.secp256k1_keystore {
+        // TODO: use the path from profile
         Keystore::Local => {
             LocalSigner::decrypt_keystore(args.secp256k1_keypair_location, secp256k1_passphrase)?
         }

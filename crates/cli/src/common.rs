@@ -1,8 +1,7 @@
 use base64::Engine;
 use clap::ValueEnum;
-use thiserror::Error;
 
-#[derive(Clone, ValueEnum, Debug)]
+#[derive(Clone, Debug, ValueEnum)]
 pub enum Curve {
     /// BN254 (also known as alt_bn128) is the curve used in Ethereum for BLS aggregation
     Bn254,
@@ -11,20 +10,19 @@ pub enum Curve {
     Secp256k1,
 }
 
-#[derive(Clone, ValueEnum, Debug)]
+#[derive(Clone, Debug, ValueEnum)]
 pub enum Scheme {
     /// Boneh–Lynn–Shacham (BLS) signature scheme using BN254
     Bls,
 }
 
-#[derive(Clone, ValueEnum, Debug)]
+#[derive(Clone, Debug, ValueEnum)]
 pub enum Keystore {
     Local,
     Aws,
 }
 
-// TODO: Move the encoding enum to the SDK crate
-#[derive(Clone, ValueEnum, Debug)]
+#[derive(Clone, Debug, ValueEnum)]
 pub enum Encoding {
     Utf8,
     Hex,
@@ -33,14 +31,17 @@ pub enum Encoding {
     Base58,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum EncodingError {
     #[error("Decoding UTF8 error")]
     DecodeUtf8Error,
+
     #[error("Decoding Hex error: {0}")]
     DecodeHexError(#[from] hex::FromHexError),
+
     #[error("Decoding Base64 error: {0}")]
     DecodeBase64Error(#[from] base64::DecodeError),
+
     #[error("Decoding Base58 error: {0}")]
     DecodeBase58Error(#[from] bs58::decode::Error),
 }
