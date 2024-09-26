@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use alloy::signers::k256::ecdsa::signature::SignerMut;
 use color_eyre::eyre;
 use karak_bls::keypair_signer::KeypairSigner;
 use karak_kms::{
@@ -71,9 +72,9 @@ pub async fn process_sign(
 
     println!("Signing with BN254 keypair: {keypair}");
 
-    let signer = KeypairSigner::from(keypair);
+    let mut signer = KeypairSigner::from(keypair);
 
-    let signature = signer.sign_message(hash_buffer)?;
+    let signature = signer.try_sign(&hash_buffer)?;
     println!("Signature: {signature}");
 
     Ok(())

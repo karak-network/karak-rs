@@ -16,6 +16,7 @@ ark-serialize = "0.4.2"
 eyre = "0.6.12"
 karak-contracts = { version = "0.2.0", path = "../contracts" }
 karak-kms = { version = "0.2.0", path = "../kms" }
+signature = "2.2.0"
 thiserror = "1.0.63"
 trait-variant = "0.1.2"
 

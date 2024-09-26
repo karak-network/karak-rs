@@ -8,7 +8,7 @@ use alloy::{
 };
 use color_eyre::eyre;
 use karak_bls::{
-    keypair_signer::{KeypairSigner, Signer},
+    keypair_signer::KeypairSigner,
     registration::{BlsRegistration, OperatorRegistration},
 };
 use karak_contracts::Core::CoreInstance;
@@ -16,6 +16,7 @@ use karak_kms::{
     keypair::{bn254, traits::Keypair},
     keystore::{self, traits::EncryptedKeystore},
 };
+use signature::SignerMut;
 use url::Url;
 
 use crate::shared::{Encoding, Keystore};
@@ -70,8 +71,8 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
 
     let msg_bytes = args.message_encoding.decode(args.message)?;
     let msg_hash = keccak256(msg_bytes);
-    let signer = KeypairSigner::from(bn254_keypair.clone());
-    let signature = signer.sign_message(msg_hash)?;
+    let mut signer = KeypairSigner::from(bn254_keypair.clone());
+    let signature = signer.try_sign(&msg_hash.as_ref())?;
     let registration = BlsRegistration {
         g1_pubkey: bn254_keypair.public_key().g1,
         g2_pubkey: bn254_keypair.public_key().g2,
