@@ -22,11 +22,25 @@ impl From<bn254::Keypair> for KeypairSigner {
     }
 }
 
-pub type KeypairSignerResult<T> = Result<T, SignatureError>;
+impl signature::Keypair for KeypairSigner {
+    type VerifyingKey = Bn254Verifier;
+
+    fn verifying_key(&self) -> Self::VerifyingKey {
+        Bn254Verifier(self.keypair.public_key().g2)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Bn254SignatureError {
+    #[error("Invalid signature")]
+    InvalidSignature,
+}
+
+pub type SignatureResult<T> = Result<T, SignatureError>;
 
 impl Signer<Signature> for KeypairSigner {
     /// Caller is responsible for ensuring `hash` is a 32-byte hash of some arbitrary sized message
-    fn try_sign(&self, bytes: &[u8]) -> KeypairSignerResult<Signature> {
+    fn try_sign(&self, bytes: &[u8]) -> SignatureResult<Signature> {
         let sk = self.keypair.secret_key();
         let hm = hash_to_g1_point(bytes);
         // TODO: Check whether its better/worse to use the projective version of the point
@@ -36,6 +50,7 @@ impl Signer<Signature> for KeypairSigner {
     }
 }
 
+#[derive(Clone)]
 pub struct Bn254Verifier(G2Pubkey);
 
 impl From<&G2Pubkey> for Bn254Verifier {
@@ -52,7 +67,7 @@ impl From<&PublicKey> for Bn254CombinedVerifier {
 }
 
 impl Verifier<Signature> for Bn254Verifier {
-    fn verify(&self, message: &[u8], sig: &Signature) -> KeypairSignerResult<()> {
+    fn verify(&self, message: &[u8], sig: &Signature) -> SignatureResult<()> {
         let gen_g2 = G2Affine::generator();
         let msg_point_g1 = hash_to_g1_point(message);
 
@@ -65,7 +80,9 @@ impl Verifier<Signature> for Bn254Verifier {
         let multi_pairing = Bn254::multi_pairing(p, q);
 
         if !multi_pairing.0.is_one() {
-            return Err(SignatureError::new());
+            return Err(SignatureError::from_source(
+                Bn254SignatureError::InvalidSignature,
+            ));
         }
 
         Ok(())
@@ -73,7 +90,7 @@ impl Verifier<Signature> for Bn254Verifier {
 }
 
 impl Verifier<Signature> for Bn254CombinedVerifier {
-    fn verify(&self, message: &[u8], sig: &Signature) -> KeypairSignerResult<()> {
+    fn verify(&self, message: &[u8], sig: &Signature) -> SignatureResult<()> {
         let signature_plus_pubkey_g1 = sig + &self.0.g1;
         let hash_plus_generator_g1 =
             G1Point::from(hash_to_g1_point(message)) + G1Point::generator();
@@ -89,7 +106,9 @@ impl Verifier<Signature> for Bn254CombinedVerifier {
         let multi_pairing = Bn254::multi_pairing(p, q);
 
         if !multi_pairing.0.is_one() {
-            return Err(SignatureError::new());
+            return Err(SignatureError::from_source(
+                Bn254SignatureError::InvalidSignature,
+            ));
         }
 
         Ok(())
@@ -115,6 +134,7 @@ pub fn hash_to_g1_point(message: &[u8]) -> G1Affine {
 
 #[cfg(test)]
 mod tests {
+    use signature::Keypair as _;
     use std::{str::FromStr, sync::OnceLock};
 
     use super::*;
@@ -155,8 +175,16 @@ mod tests {
         let actual_signature = signer.try_sign(&message).unwrap();
         assert_eq!(actual_signature, *expected_signature);
 
-        assert!(verifier.verify(&message, &expected_signature).is_ok());
-        assert!(combined_verifier.verify(&message, &expected_signature).is_ok());
+        // These 2 asserts should be doing the smae thing
+        assert!(signer
+            .verifying_key()
+            .verify(&message, expected_signature)
+            .is_ok());
+        assert!(verifier.verify(&message, expected_signature).is_ok());
+
+        assert!(combined_verifier
+            .verify(&message, expected_signature)
+            .is_ok());
     }
 
     #[test]
@@ -184,14 +212,8 @@ mod tests {
 
         let signature = signer.try_sign(&message).unwrap();
 
-        assert!(matches!(
-            verifier.verify(&message, &signature),
-            Err(SignatureError)
-        ));
-        assert!(matches!(
-            combined_verifier.verify(&message, &signature),
-            Err(SignatureError)
-        ))
+        assert!(verifier.verify(&message, &signature).is_err(),);
+        assert!(combined_verifier.verify(&message, &signature).is_err());
     }
 
     #[test]
@@ -214,7 +236,10 @@ mod tests {
         // Combine public keys
         let aggregated_g2 = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
         let aggregated_g1 = keypairs.iter().map(|kp| &kp.public_key().g1).sum();
-        let aggregated_keypair = PublicKey{g1: aggregated_g1, g2: aggregated_g2};
+        let aggregated_keypair = PublicKey {
+            g1: aggregated_g1,
+            g2: aggregated_g2,
+        };
 
         let verifier = Bn254Verifier::from(&aggregated_g2);
         let combined_verifier = Bn254CombinedVerifier::from(&aggregated_keypair);
@@ -243,18 +268,16 @@ mod tests {
         // Combine public keys (including the third unused one)
         let aggregated_g2 = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
         let aggregated_g1 = keypairs.iter().map(|kp| &kp.public_key().g1).sum();
-        let aggregated_keypair = PublicKey{g1: aggregated_g1, g2: aggregated_g2};
+        let aggregated_keypair = PublicKey {
+            g1: aggregated_g1,
+            g2: aggregated_g2,
+        };
 
         let verifier = Bn254Verifier::from(&aggregated_g2);
         let combined_verifier = Bn254CombinedVerifier::from(&aggregated_keypair);
 
-        assert!(matches!(
-            verifier.verify(&message, &aggregated_sig),
-            Err(SignatureError)
-        ));
-        assert!(matches!(combined_verifier.verify(&message, &aggregated_sig),
-        Err(SignatureError)
-    ))
+        assert!(verifier.verify(&message, &aggregated_sig).is_err(),);
+        assert!(combined_verifier.verify(&message, &aggregated_sig).is_err());
     }
 
     #[test]
@@ -274,21 +297,9 @@ mod tests {
         assert!(combined_verifier.verify(&message1, &signature1).is_ok());
         assert!(verifier.verify(&message2, &signature2).is_ok());
         assert!(combined_verifier.verify(&message2, &signature2).is_ok());
-        assert!(matches!(
-            verifier.verify(&message2, &signature1),
-            Err(SignatureError)
-        ));
-        assert!(matches!(
-            combined_verifier.verify(&message2, &signature1),
-            Err(SignatureError)
-        ));
-        assert!(matches!(
-            verifier.verify(&message1, &signature2),
-            Err(SignatureError)
-        ));
-        assert!(matches!(
-            combined_verifier.verify(&message1, &signature2),
-            Err(SignatureError)
-        ));
+        assert!(verifier.verify(&message2, &signature1).is_err());
+        assert!(combined_verifier.verify(&message2, &signature1).is_err());
+        assert!(verifier.verify(&message1, &signature2).is_err());
+        assert!(combined_verifier.verify(&message1, &signature2).is_err());
     }
 }
