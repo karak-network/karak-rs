@@ -2,7 +2,10 @@ pub mod processor;
 
 use clap::Parser;
 
-use crate::{bls::BLS, config::Config, keypair::Keypair, operator::Operator};
+use crate::{config::Config, keypair::Keypair, operator::Operator};
+
+#[cfg(feature = "bls")]
+use crate::bls::BLS;
 
 #[derive(Parser)]
 #[command(version, about = "Karak CLI", long_about = None)]
@@ -12,6 +15,7 @@ pub enum Root {
     #[command(subcommand)]
     Keypair(Keypair),
     /// BLS operations
+    #[cfg(feature = "bls")]
     #[command(subcommand)]
     BLS(BLS),
     /// Operator management

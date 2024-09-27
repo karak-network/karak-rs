@@ -1,3 +1,4 @@
+#[cfg(feature = "bls")]
 pub mod bls;
 pub mod config;
 pub mod keypair;
