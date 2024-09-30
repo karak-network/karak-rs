@@ -6,8 +6,10 @@ use generate::process_generate;
 use pubkey::process_pubkey;
 
 use super::Keypair;
+use crate::config::models::Profile;
 
-pub async fn process(command: Keypair) -> eyre::Result<()> {
+// TODO: use profile where needed
+pub async fn process(command: Keypair, _: Profile) -> eyre::Result<()> {
     match command {
         Keypair::Generate {
             keypair: keypair_args,
