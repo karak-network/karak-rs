@@ -117,7 +117,7 @@ async fn test_registration() -> Result<()> {
 
     let mut signer = KeypairSigner::from(keypair.clone());
     let message = keccak256(b"hello world");
-    let signature = signer.try_sign(&message.as_ref())?;
+    let signature = signer.try_sign(message.as_ref())?;
     let registration = BlsRegistration {
         g1_pubkey: keypair.public_key().g1,
         g2_pubkey: keypair.public_key().g2,

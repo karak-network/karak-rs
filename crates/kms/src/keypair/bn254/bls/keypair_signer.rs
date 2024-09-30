@@ -8,15 +8,13 @@ use signature::{Error as SignatureError, Signer, Verifier};
 use crate::keypair::bn254::PublicKey;
 
 use super::super::{
-    algebra::g1::G1Point, G2Pubkey,
-    super::traits::Keypair,
-    Keypair as Bn254Keypair
+    super::traits::Keypair, algebra::g1::G1Point, G2Pubkey, Keypair as Bn254Keypair,
 };
 
 use super::signature::Signature;
 
 pub struct KeypairSigner {
-    keypair: Bn254Keypair
+    keypair: Bn254Keypair,
 }
 
 impl From<Bn254Keypair> for KeypairSigner {
@@ -25,11 +23,24 @@ impl From<Bn254Keypair> for KeypairSigner {
     }
 }
 
-pub type KeypairSignerResult<T> = Result<T, SignatureError>;
+impl signature::Keypair for KeypairSigner {
+    type VerifyingKey = G2Pubkey;
 
+    fn verifying_key(&self) -> Self::VerifyingKey {
+        self.keypair.public_key().g2
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Bn254SignatureError {
+    #[error("Invalid signature")]
+    InvalidSignature,
+}
+
+pub type SignatureResult<T> = Result<T, SignatureError>;
 impl Signer<Signature> for KeypairSigner {
     /// Caller is responsible for ensuring `hash` is a 32-byte hash of some arbitrary sized message
-    fn try_sign(&self, bytes: &[u8]) -> KeypairSignerResult<Signature> {
+    fn try_sign(&self, bytes: &[u8]) -> SignatureResult<Signature> {
         let sk = self.keypair.secret_key();
         let hm = hash_to_g1_point(bytes);
         // TODO: Check whether its better/worse to use the projective version of the point
@@ -40,7 +51,7 @@ impl Signer<Signature> for KeypairSigner {
 }
 
 impl Verifier<Signature> for G2Pubkey {
-    fn verify(&self, message: &[u8], sig: &Signature) -> KeypairSignerResult<()> {
+    fn verify(&self, message: &[u8], sig: &Signature) -> SignatureResult<()> {
         let gen_g2 = G2Affine::generator();
         let msg_point_g1 = hash_to_g1_point(message);
 
@@ -53,7 +64,9 @@ impl Verifier<Signature> for G2Pubkey {
         let multi_pairing = Bn254::multi_pairing(p, q);
 
         if !multi_pairing.0.is_one() {
-            return Err(SignatureError::new());
+            return Err(SignatureError::from_source(
+                Bn254SignatureError::InvalidSignature,
+            ));
         }
 
         Ok(())
@@ -61,7 +74,7 @@ impl Verifier<Signature> for G2Pubkey {
 }
 
 impl Verifier<Signature> for PublicKey {
-    fn verify(&self, message: &[u8], sig: &Signature) -> KeypairSignerResult<()> {
+    fn verify(&self, message: &[u8], sig: &Signature) -> SignatureResult<()> {
         let signature_plus_pubkey_g1 = sig + &self.g1;
         let hash_plus_generator_g1 =
             G1Point::from(hash_to_g1_point(message)) + G1Point::generator();
@@ -77,7 +90,9 @@ impl Verifier<Signature> for PublicKey {
         let multi_pairing = Bn254::multi_pairing(p, q);
 
         if !multi_pairing.0.is_one() {
-            return Err(SignatureError::new());
+            return Err(SignatureError::from_source(
+                Bn254SignatureError::InvalidSignature,
+            ));
         }
 
         Ok(())
@@ -106,6 +121,7 @@ mod tests {
     use std::{str::FromStr, sync::OnceLock};
 
     use crate::keypair::bn254::PublicKey;
+    use signature::Keypair as _;
 
     use super::*;
 
@@ -143,8 +159,14 @@ mod tests {
         let actual_signature = signer.try_sign(&message).unwrap();
         assert_eq!(actual_signature, *expected_signature);
 
-        assert!(keypair.public_key().g2.verify(&message, &expected_signature).is_ok());
-        assert!(keypair.public_key().verify(&message, &expected_signature).is_ok());
+        assert!(signer
+            .verifying_key()
+            .verify(&message, &expected_signature)
+            .is_ok());
+        assert!(keypair
+            .public_key()
+            .verify(&message, &expected_signature)
+            .is_ok());
     }
 
     #[test]
@@ -155,7 +177,7 @@ mod tests {
 
         let signature = signer.try_sign(&message).unwrap();
 
-        assert!(keypair.public_key().g2.verify(&message, &signature).is_ok());
+        assert!(signer.verifying_key().verify(&message, &signature).is_ok());
         assert!(keypair.public_key().verify(&message, &signature).is_ok());
     }
 
@@ -168,14 +190,11 @@ mod tests {
 
         let signature = signer.try_sign(&message).unwrap();
 
-        assert!(matches!(
-            other_keypair.public_key().g2.verify(&message, &signature),
-            Err(SignatureError)
-        ));
-        assert!(matches!(
-            other_keypair.public_key().verify(&message, &signature),
-            Err(SignatureError)
-        ))
+        assert!(signer.verifying_key().verify(&message, &signature).is_err());
+        assert!(other_keypair
+            .public_key()
+            .verify(&message, &signature)
+            .is_err())
     }
 
     #[test]
@@ -198,9 +217,15 @@ mod tests {
         // Combine public keys
         let aggregated_g2 = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
         let aggregated_g1 = keypairs.iter().map(|kp| &kp.public_key().g1).sum();
-        let aggregated_keypair = PublicKey{g1: aggregated_g1, g2: aggregated_g2};
+        let aggregated_keypair = PublicKey {
+            g1: aggregated_g1,
+            g2: aggregated_g2,
+        };
 
-        assert!(aggregated_keypair.g2.verify(&message, &aggregated_sig).is_ok());
+        assert!(aggregated_keypair
+            .g2
+            .verify(&message, &aggregated_sig)
+            .is_ok());
         assert!(aggregated_keypair.verify(&message, &aggregated_sig).is_ok());
     }
 
@@ -224,16 +249,18 @@ mod tests {
         // Combine public keys (including the third unused one)
         let aggregated_g2 = keypairs.iter().map(|kp| &kp.public_key().g2).sum();
         let aggregated_g1 = keypairs.iter().map(|kp| &kp.public_key().g1).sum();
-        let aggregated_keypair = PublicKey{g1: aggregated_g1, g2: aggregated_g2};
+        let aggregated_keypair = PublicKey {
+            g1: aggregated_g1,
+            g2: aggregated_g2,
+        };
 
-
-        assert!(matches!(
-            aggregated_keypair.g2.verify(&message, &aggregated_sig),
-            Err(SignatureError)
-        ));
-        assert!(matches!(aggregated_keypair.verify(&message, &aggregated_sig),
-        Err(SignatureError)
-    ))
+        assert!(aggregated_keypair
+            .g2
+            .verify(&message, &aggregated_sig)
+            .is_err());
+        assert!(aggregated_keypair
+            .verify(&message, &aggregated_sig)
+            .is_err());
     }
 
     #[test]
@@ -246,25 +273,27 @@ mod tests {
         let signature1 = signer.try_sign(&message1).unwrap();
         let signature2 = signer.try_sign(&message2).unwrap();
 
-        assert!(keypair.public_key().g2.verify(&message1, &signature1).is_ok());
+        assert!(keypair
+            .public_key()
+            .g2
+            .verify(&message1, &signature1)
+            .is_ok());
         assert!(keypair.public_key().verify(&message1, &signature1).is_ok());
-        assert!(keypair.public_key().g2.verify(&message2, &signature2).is_ok());
+        assert!(keypair
+            .public_key()
+            .g2
+            .verify(&message2, &signature2)
+            .is_ok());
         assert!(keypair.public_key().verify(&message2, &signature2).is_ok());
-        assert!(matches!(
-            keypair.public_key().g2.verify(&message2, &signature1),
-            Err(SignatureError)
-        ));
-        assert!(matches!(
-            keypair.public_key().verify(&message2, &signature1),
-            Err(SignatureError)
-        ));
-        assert!(matches!(
-            keypair.public_key().g2.verify(&message1, &signature2),
-            Err(SignatureError)
-        ));
-        assert!(matches!(
-            keypair.public_key().verify(&message1, &signature2),
-            Err(SignatureError)
-        ));
+        assert!(signer
+            .verifying_key()
+            .verify(&message2, &signature1)
+            .is_err());
+        assert!(keypair.public_key().verify(&message2, &signature1).is_err());
+        assert!(signer
+            .verifying_key()
+            .verify(&message1, &signature2)
+            .is_err());
+        assert!(keypair.public_key().verify(&message1, &signature2).is_err());
     }
 }

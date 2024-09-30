@@ -1,3 +1,4 @@
+use super::super::{G1Pubkey, G2Pubkey};
 use super::signature::Signature;
 use alloy::{
     primitives::{Address, Bytes, TxHash},
@@ -7,7 +8,6 @@ use alloy::{
     transports::Transport,
 };
 use karak_contracts::Core::CoreInstance;
-use super::super::{G1Pubkey, G2Pubkey};
 
 sol!(
     #[derive(Debug, PartialEq, Eq)]
