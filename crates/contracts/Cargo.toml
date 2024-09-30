@@ -10,7 +10,6 @@ edition = { workspace = true }
 [dependencies]
 alloy = { workspace = true }
 eyre = "0.6.12"
-karak-kms = { version = "0.2.0", path = "../kms" }
 trait-variant = "0.1.2"
 
 [dev-dependencies]

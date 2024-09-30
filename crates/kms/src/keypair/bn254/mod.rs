@@ -12,6 +12,7 @@ use thiserror::Error;
 use super::traits::Keypair as KeypairTrait;
 
 pub mod algebra;
+pub mod bls;
 mod encryption;
 mod pubkey;
 pub use encryption::*;
