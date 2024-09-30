@@ -92,7 +92,8 @@ fn prompt_chain() -> Chain {
     let theme = ColorfulTheme::default();
 
     let chain_options = vec!["EVM"];
-    let chain_index = Select::with_theme(&theme)
+    // Used when more chains are supported
+    let _ = Select::with_theme(&theme)
         .with_prompt("Select chain type")
         .default(0)
         .items(&chain_options)
