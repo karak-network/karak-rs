@@ -6,7 +6,7 @@ use url::Url;
 
 use crate::shared::{Encoding, Keystore};
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Operator {
     /// Perform BLS registration to DSS
     Register {

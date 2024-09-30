@@ -6,7 +6,7 @@ pub use utils::*;
 
 use clap::Subcommand;
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Config {
     /// Initialize config
     Update {

@@ -1,6 +1,7 @@
 pub mod processor;
 
 use clap::{Parser, Subcommand};
+use clap_complete::Shell;
 
 use crate::{config::Config, keypair::Keypair, operator::Operator};
 
@@ -10,21 +11,23 @@ use crate::bls::BLS;
 const DEFAULT_CONFIG_PATH: &str = concat!(env!("HOME"), "/.config/karak/config.yaml");
 const DEFAULT_PROFILE: &str = "default";
 
-#[derive(Parser)]
-#[command(version, about, long_about = None)]
-#[command(propagate_version = true)]
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None, propagate_version = true, subcommand_required = false)]
 pub struct Root {
     #[arg(short = 'p', long, global = true, default_value = DEFAULT_PROFILE)]
-    profile: Option<String>,
+    pub profile: Option<String>,
 
     #[arg(short = 'c', long, global = true, default_value = DEFAULT_CONFIG_PATH)]
-    config_path: Option<String>,
+    pub config_path: Option<String>,
+
+    #[arg(long = "completions", value_enum)]
+    pub generator: Option<Shell>,
 
     #[command(subcommand)]
-    command: Command,
+    pub command: Option<Command>,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Command {
     /// Keypair management
     #[command(subcommand)]
