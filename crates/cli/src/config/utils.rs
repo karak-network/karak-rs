@@ -99,19 +99,15 @@ fn prompt_chain() -> Chain {
         .interact()
         .unwrap();
 
-    match chain_index {
-        _ => {
-            let id: u64 = Input::with_theme(&theme)
-                .with_prompt("Enter chain ID")
-                .interact_text()
-                .unwrap();
-            let rpc_url: String = Input::with_theme(&theme)
-                .with_prompt("Enter RPC URL")
-                .interact_text()
-                .unwrap();
-            Chain::Evm { id, rpc_url }
-        }
-    }
+    let id: u64 = Input::with_theme(&theme)
+        .with_prompt("Enter chain ID")
+        .interact_text()
+        .unwrap();
+    let rpc_url: String = Input::with_theme(&theme)
+        .with_prompt("Enter RPC URL")
+        .interact_text()
+        .unwrap();
+    Chain::Evm { id, rpc_url }
 }
 
 fn prompt_keystore() -> Keystore {

@@ -12,11 +12,9 @@ async fn main() -> color_eyre::Result<()> {
         let mut cmd = Root::command();
         eprintln!("Generating completion file for {generator:?}...");
         print_completions(generator, &mut cmd);
-    } else {
-        if cli.command.is_none() {
-            let mut cmd = Root::command();
-            cmd.print_help().expect("Failed to print help");
-        }
+    } else if cli.command.is_none() {
+        let mut cmd = Root::command();
+        cmd.print_help().expect("Failed to print help");
     }
 
     processor::process(cli).await?;
