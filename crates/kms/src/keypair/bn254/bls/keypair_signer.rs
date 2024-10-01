@@ -13,21 +13,12 @@ use super::super::{
 
 use super::signature::Signature;
 
-pub struct KeypairSigner {
-    keypair: Bn254Keypair,
-}
 
-impl From<Bn254Keypair> for KeypairSigner {
-    fn from(value: Bn254Keypair) -> Self {
-        Self { keypair: value }
-    }
-}
-
-impl signature::Keypair for KeypairSigner {
+impl signature::Keypair for Bn254Keypair {
     type VerifyingKey = G2Pubkey;
 
     fn verifying_key(&self) -> Self::VerifyingKey {
-        self.keypair.public_key().g2
+        self.public_key().g2
     }
 }
 
@@ -38,10 +29,10 @@ pub enum Bn254SignatureError {
 }
 
 pub type SignatureResult<T> = Result<T, SignatureError>;
-impl Signer<Signature> for KeypairSigner {
+impl Signer<Signature> for Bn254Keypair {
     /// Caller is responsible for ensuring `hash` is a 32-byte hash of some arbitrary sized message
     fn try_sign(&self, bytes: &[u8]) -> SignatureResult<Signature> {
-        let sk = self.keypair.secret_key();
+        let sk = self.secret_key();
         let hm = hash_to_g1_point(bytes);
         // TODO: Check whether its better/worse to use the projective version of the point
         let sig = (hm * sk).into_affine();
@@ -152,14 +143,13 @@ mod tests {
     #[test]
     fn test_precomputed_signature() {
         let keypair = precomputed_keypair();
-        let signer = KeypairSigner::from(keypair.clone());
         let message = [42u8; 32];
 
         let expected_signature = precomputed_signature_for_keypair();
-        let actual_signature = signer.sign(&message);
+        let actual_signature = keypair.sign(&message);
         assert_eq!(actual_signature, *expected_signature);
 
-        assert!(signer
+        assert!(keypair
             .verifying_key()
             .verify(&message, &expected_signature)
             .is_ok());
@@ -172,12 +162,11 @@ mod tests {
     #[test]
     fn test_sign_and_verify() {
         let keypair = generate_keypair();
-        let signer = KeypairSigner::from(keypair.clone());
         let message = [42u8; 32];
 
-        let signature = signer.sign(&message);
+        let signature = keypair.sign(&message);
 
-        assert!(signer.verifying_key().verify(&message, &signature).is_ok());
+        assert!(keypair.verifying_key().verify(&message, &signature).is_ok());
         assert!(keypair.public_key().verify(&message, &signature).is_ok());
     }
 
@@ -185,12 +174,11 @@ mod tests {
     fn test_invalid_signature() {
         let keypair = generate_keypair();
         let other_keypair = generate_keypair();
-        let signer = KeypairSigner::from(keypair.clone());
         let message = [42u8; 32];
 
-        let signature = signer.sign(&message);
+        let signature = keypair.sign(&message);
 
-        assert!(signer.verifying_key().verify(&message, &signature).is_err());
+        assert!(other_keypair.verifying_key().verify(&message, &signature).is_err());
         assert!(other_keypair
             .public_key()
             .verify(&message, &signature)
@@ -200,16 +188,12 @@ mod tests {
     #[test]
     fn test_aggregated_signatures() {
         let keypairs: Vec<_> = (0..3).map(|_| generate_keypair()).collect();
-        let signers: Vec<_> = keypairs
-            .iter()
-            .map(|kp| KeypairSigner::from(kp.clone()))
-            .collect();
         let message = [42u8; 32];
 
-        let signatures: Vec<_> = signers
+        let signatures: Vec<_> = keypairs
             .iter()
             .take(3)
-            .map(|signer| signer.sign(&message))
+            .map(|keypair| keypair.sign(&message))
             .collect();
 
         let aggregated_sig = signatures.iter().sum();
@@ -232,16 +216,12 @@ mod tests {
     #[test]
     fn test_aggregated_signatures_mismatch() {
         let keypairs: Vec<_> = (0..3).map(|_| generate_keypair()).collect();
-        let signers: Vec<_> = keypairs
-            .iter()
-            .map(|kp| KeypairSigner::from(kp.clone()))
-            .collect();
         let message = [42u8; 32];
 
-        let signatures: Vec<_> = signers
+        let signatures: Vec<_> = keypairs
             .iter()
             .take(2) // Only sign with the first two keypairs
-            .map(|signer| signer.sign(&message))
+            .map(|keypair| keypair.sign(&message))
             .collect();
 
         let aggregated_sig = signatures.iter().sum();
@@ -266,12 +246,11 @@ mod tests {
     #[test]
     fn test_sign_different_messages() {
         let keypair = generate_keypair();
-        let signer = KeypairSigner::from(keypair.clone());
         let message1 = [1u8; 32];
         let message2 = [2u8; 32];
 
-        let signature1 = signer.sign(&message1);
-        let signature2 = signer.sign(&message2);
+        let signature1 = keypair.sign(&message1);
+        let signature2 = keypair.sign(&message2);
 
         assert!(keypair
             .public_key()
@@ -285,12 +264,12 @@ mod tests {
             .verify(&message2, &signature2)
             .is_ok());
         assert!(keypair.public_key().verify(&message2, &signature2).is_ok());
-        assert!(signer
+        assert!(keypair
             .verifying_key()
             .verify(&message2, &signature1)
             .is_err());
         assert!(keypair.public_key().verify(&message2, &signature1).is_err());
-        assert!(signer
+        assert!(keypair
             .verifying_key()
             .verify(&message1, &signature2)
             .is_err());
