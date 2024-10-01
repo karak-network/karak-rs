@@ -70,7 +70,6 @@ pub async fn process_sign(
 
     println!("Signing with BN254 keypair: {keypair}");
 
-
     let signature = keypair.sign(&hash_buffer);
     println!("Signature: {signature}");
 

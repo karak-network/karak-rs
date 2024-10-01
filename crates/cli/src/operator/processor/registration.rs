@@ -1,5 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 
+use crate::shared::{Encoding, Keystore};
+use alloy::signers::k256::ecdsa::signature::SignerMut;
 use alloy::{
     network::EthereumWallet,
     primitives::{keccak256, Address},
@@ -9,12 +11,16 @@ use alloy::{
 use color_eyre::eyre;
 use karak_contracts::Core::CoreInstance;
 use karak_kms::{
-    keypair::{bn254::{self, bls::registration::{BlsRegistration, OperatorRegistration}}, traits::Keypair},
+    keypair::{
+        bn254::{
+            self,
+            bls::registration::{BlsRegistration, OperatorRegistration},
+        },
+        traits::Keypair,
+    },
     keystore::{self, traits::EncryptedKeystore},
 };
 use url::Url;
-use alloy::signers::k256::ecdsa::signature::SignerMut;
-use crate::shared::{Encoding, Keystore};
 
 pub struct RegistrationArgs<'a> {
     pub bn254_keypair_location: &'a str,
