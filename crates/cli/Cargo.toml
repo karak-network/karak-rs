@@ -14,7 +14,9 @@ aws-sdk-secretsmanager = "1.46.0"
 base64 = "0.22.1"
 bs58 = "0.5.1"
 clap = { version = "4.5.17", features = ["derive"] }
+clap_complete = "4.5.29"
 color-eyre = "0.6.3"
+dialoguer = "0.11.0"
 dirs-next = "2.0.0"
 hex = "0.4.3"
 karak-contracts = { path = "../contracts" }
@@ -23,6 +25,7 @@ rand = "0.8.5"
 rpassword = "7.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+serde_yaml = "0.9.34"
 sha3 = "0.10"
 signature = "2.2.0"
 thiserror = "1.0.63"
@@ -32,3 +35,6 @@ url = "2.5.2"
 [[bin]]
 name = "karak"
 path = "src/main.rs"
+
+[features]
+bls = []

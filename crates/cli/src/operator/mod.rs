@@ -6,7 +6,7 @@ use url::Url;
 
 use crate::shared::{Encoding, Keystore};
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Operator {
     /// Perform BLS registration to DSS
     Register {
@@ -24,13 +24,9 @@ pub enum Operator {
         #[arg(long)]
         secp256k1_passphrase: Option<String>,
 
-        #[arg(short, long, default_value = "http://localhost:8545")]
-        /// RPC endpoint
-        rpc_url: Url,
-
         #[arg(short, long)]
-        /// Core addresss
-        core_address: Address,
+        /// RPC endpoint
+        rpc_url: Option<Url>,
 
         #[arg(short, long)]
         /// DSS address
