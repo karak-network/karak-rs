@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
 use color_eyre::eyre;
-use karak_bls::{keypair_signer::verify_signature, signature::Signature};
-use karak_kms::keypair::bn254::G2Pubkey;
+use karak_kms::keypair::bn254::{bls::signature::Signature, G2Pubkey};
 use sha3::{Digest, Keccak256};
+use signature::Verifier;
 
 use crate::bls::MessageArgs;
 
@@ -31,7 +31,7 @@ pub fn process_verify(
     let public_key = G2Pubkey::from_str(&pubkey)?;
     let signature = Signature::from_str(&signature)?;
 
-    match verify_signature(&public_key, &signature, hash_buffer) {
+    match public_key.verify(&hash_buffer, &signature) {
         Ok(_) => println!("Signature is valid"),
         _ => println!("Signature verification failed!"),
     };

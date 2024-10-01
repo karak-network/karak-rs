@@ -13,13 +13,12 @@ use alloy::{
 use bls_sdk::BlsSdk::BlsSdkInstance;
 use bytecode::Bytecode;
 use eyre::Result;
-use karak_bls::keypair_signer::KeypairSigner;
-use karak_bls::registration::BlsRegistration;
+use karak_kms::keypair::bn254::bls::registration::BlsRegistration;
 use karak_kms::keypair::{
     bn254::{self},
     traits::Keypair,
 };
-use karak_kms::signer::traits::Signer;
+use signature::SignerMut;
 use Verify::VerifyInstance;
 
 mod bytecode;
@@ -112,11 +111,10 @@ async fn test_registration() -> Result<()> {
     let bls_sdk = deploy_bls_sdk(provider.clone()).await?;
     let verify = deploy_verify(provider.clone(), bls_sdk.address()).await?;
 
-    let keypair = bn254::Keypair::generate();
+    let mut keypair = bn254::Keypair::generate();
 
-    let signer = KeypairSigner::from(keypair.clone());
     let message = keccak256(b"hello world");
-    let signature = signer.sign_message(message)?;
+    let signature = keypair.sign(message.as_ref());
     let registration = BlsRegistration {
         g1_pubkey: keypair.public_key().g1,
         g2_pubkey: keypair.public_key().g2,

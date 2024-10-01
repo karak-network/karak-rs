@@ -1,4 +1,5 @@
-use crate::signature::Signature;
+use super::super::{G1Pubkey, G2Pubkey};
+use super::signature::Signature;
 use alloy::{
     primitives::{Address, Bytes, TxHash},
     providers::Provider,
@@ -7,7 +8,6 @@ use alloy::{
     transports::Transport,
 };
 use karak_contracts::Core::CoreInstance;
-use karak_kms::keypair::bn254::{G1Pubkey, G2Pubkey};
 
 sol!(
     #[derive(Debug, PartialEq, Eq)]

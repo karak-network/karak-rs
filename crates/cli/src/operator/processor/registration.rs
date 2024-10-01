@@ -1,5 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 
+use crate::shared::{Encoding, Keystore};
+use alloy::signers::k256::ecdsa::signature::SignerMut;
 use alloy::{
     network::EthereumWallet,
     primitives::{keccak256, Address},
@@ -7,18 +9,18 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use color_eyre::eyre;
-use karak_bls::{
-    keypair_signer::{KeypairSigner, Signer},
-    registration::{BlsRegistration, OperatorRegistration},
-};
 use karak_contracts::Core::CoreInstance;
 use karak_kms::{
-    keypair::{bn254, traits::Keypair},
+    keypair::{
+        bn254::{
+            self,
+            bls::registration::{BlsRegistration, OperatorRegistration},
+        },
+        traits::Keypair,
+    },
     keystore::{self, traits::EncryptedKeystore},
 };
 use url::Url;
-
-use crate::shared::{Encoding, Keystore};
 
 pub struct RegistrationArgs<'a> {
     pub bn254_keypair_location: &'a str,
@@ -39,7 +41,7 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
         Some(passphrase) => passphrase,
         None => &rpassword::prompt_password("Enter BN254 keypair passphrase: ")?,
     };
-    let bn254_keypair: bn254::Keypair = match args.bn254_keystore {
+    let mut bn254_keypair: bn254::Keypair = match args.bn254_keystore {
         Keystore::Local => {
             let local_keystore = keystore::local::LocalEncryptedKeystore::new(PathBuf::from_str(
                 args.bn254_keypair_location,
@@ -70,8 +72,7 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
 
     let msg_bytes = args.message_encoding.decode(args.message)?;
     let msg_hash = keccak256(msg_bytes);
-    let signer = KeypairSigner::from(bn254_keypair.clone());
-    let signature = signer.sign_message(msg_hash)?;
+    let signature = bn254_keypair.sign(msg_hash.as_ref());
     let registration = BlsRegistration {
         g1_pubkey: bn254_keypair.public_key().g1,
         g2_pubkey: bn254_keypair.public_key().g2,
