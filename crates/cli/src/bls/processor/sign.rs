@@ -2,15 +2,15 @@ use std::path::PathBuf;
 
 use alloy::signers::k256::ecdsa::signature::SignerMut;
 use color_eyre::eyre;
-use karak_bls::keypair_signer::KeypairSigner;
 use karak_kms::{
-    keypair::bn254,
+    keypair::bn254::{self, bls::keypair_signer::KeypairSigner},
     keystore::{
         self,
         aws::AwsKeystoreParams,
         traits::{AsyncEncryptedKeystore, EncryptedKeystore},
     },
     signer::traits::Signer,
+    
 };
 use sha3::{Digest, Keccak256};
 
@@ -74,7 +74,7 @@ pub async fn process_sign(
 
     let mut signer = KeypairSigner::from(keypair);
 
-    let signature = signer.try_sign(&hash_buffer)?;
+    let signature = signer.sign(&hash_buffer);
     println!("Signature: {signature}");
 
     Ok(())

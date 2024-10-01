@@ -1,8 +1,7 @@
 use std::str::FromStr;
 
 use color_eyre::eyre;
-use karak_bls::signature::Signature;
-use karak_kms::keypair::bn254::G2Pubkey;
+use karak_kms::keypair::bn254::{G2Pubkey, bls::signature::Signature};
 use sha3::{Digest, Keccak256};
 use signature::Verifier;
 
