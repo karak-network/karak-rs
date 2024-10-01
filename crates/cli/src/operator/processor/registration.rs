@@ -66,7 +66,7 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
 
     let msg_bytes = args.message_encoding.decode(args.message)?;
     let msg_hash = keccak256(msg_bytes);
-    let signature = bn254_keypair.sign(&msg_hash.as_ref());
+    let signature = bn254_keypair.sign(msg_hash.as_ref());
     let registration = BlsRegistration {
         g1_pubkey: bn254_keypair.public_key().g1,
         g2_pubkey: bn254_keypair.public_key().g2,
