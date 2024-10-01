@@ -150,11 +150,11 @@ mod tests {
 
         assert!(keypair
             .verifying_key()
-            .verify(&message, &expected_signature)
+            .verify(&message, expected_signature)
             .is_ok());
         assert!(keypair
             .public_key()
-            .verify(&message, &expected_signature)
+            .verify(&message, expected_signature)
             .is_ok());
     }
 

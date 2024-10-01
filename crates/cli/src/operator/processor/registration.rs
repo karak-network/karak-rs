@@ -9,12 +9,11 @@ use alloy::{
 use color_eyre::eyre;
 use karak_contracts::Core::CoreInstance;
 use karak_kms::{
-    keypair::{bn254::{self, bls::{keypair_signer::KeypairSigner, registration::{BlsRegistration, OperatorRegistration}}}, traits::Keypair},
+    keypair::{bn254::{self, bls::registration::{BlsRegistration, OperatorRegistration}}, traits::Keypair},
     keystore::{self, traits::EncryptedKeystore},
 };
-use signature::SignerMut;
 use url::Url;
-
+use alloy::signers::k256::ecdsa::signature::SignerMut;
 use crate::shared::{Encoding, Keystore};
 
 pub struct RegistrationArgs<'a> {
@@ -36,7 +35,7 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
         Some(passphrase) => passphrase,
         None => &rpassword::prompt_password("Enter BN254 keypair passphrase: ")?,
     };
-    let bn254_keypair: bn254::Keypair = match args.bn254_keystore {
+    let mut bn254_keypair: bn254::Keypair = match args.bn254_keystore {
         Keystore::Local => {
             let local_keystore = keystore::local::LocalEncryptedKeystore::new(PathBuf::from_str(
                 args.bn254_keypair_location,
@@ -67,8 +66,7 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
 
     let msg_bytes = args.message_encoding.decode(args.message)?;
     let msg_hash = keccak256(msg_bytes);
-    let mut signer = KeypairSigner::from(bn254_keypair.clone());
-    let signature = signer.sign(&msg_hash.as_ref());
+    let signature = bn254_keypair.sign(&msg_hash.as_ref());
     let registration = BlsRegistration {
         g1_pubkey: bn254_keypair.public_key().g1,
         g2_pubkey: bn254_keypair.public_key().g2,
