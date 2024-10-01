@@ -13,7 +13,7 @@ use karak_kms::{
 
 use crate::{
     keypair::{KeypairArgs, KeypairLocationArgs},
-    shared::{Curve, Keystore},
+    shared::{Curve, KeystoreType},
 };
 
 pub async fn process_pubkey(
@@ -35,7 +35,7 @@ pub async fn process_pubkey(
             };
 
             match keystore {
-                Keystore::Local => {
+                KeystoreType::Local => {
                     let local_keystore =
                         keystore::local::LocalEncryptedKeystore::new(PathBuf::from(keypair));
 
@@ -43,7 +43,7 @@ pub async fn process_pubkey(
 
                     println!("Public Key (retrieved from local keystore): {keypair}");
                 }
-                Keystore::Aws => {
+                KeystoreType::Aws => {
                     let config = aws_config::load_from_env().await;
                     let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
 
@@ -63,7 +63,7 @@ pub async fn process_pubkey(
                 None => rpassword::prompt_password("Enter keypair passphrase: ")?,
             };
             match keystore {
-                Keystore::Local => {
+                KeystoreType::Local => {
                     let keypath = PathBuf::from_str(&keypair)?;
                     let private_key = LocalSigner::decrypt_keystore(keypath, passphrase)?;
                     println!(
@@ -71,7 +71,7 @@ pub async fn process_pubkey(
                         private_key.address()
                     );
                 }
-                Keystore::Aws => todo!(),
+                KeystoreType::Aws => todo!(),
             }
         }
     }

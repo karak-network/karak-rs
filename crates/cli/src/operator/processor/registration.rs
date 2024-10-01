@@ -1,5 +1,3 @@
-use std::{path::PathBuf, str::FromStr};
-
 use alloy::{
     network::EthereumWallet,
     primitives::{keccak256, Address},
@@ -18,13 +16,12 @@ use karak_kms::{
 };
 use url::Url;
 
-use crate::shared::{Encoding, Keystore};
+use crate::config::models::Keystore;
+use crate::shared::Encoding;
 
 pub struct RegistrationArgs<'a> {
-    pub bn254_keypair_location: &'a str,
     pub bn254_keystore: &'a Keystore,
     pub bn254_passphrase: Option<&'a str>,
-    pub secp256k1_keypair_location: &'a str,
     pub secp256k1_keystore: &'a Keystore,
     pub secp256k1_passphrase: Option<&'a str>,
     pub rpc_url: Url,
@@ -40,13 +37,11 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
         None => &rpassword::prompt_password("Enter BN254 keypair passphrase: ")?,
     };
     let bn254_keypair: bn254::Keypair = match args.bn254_keystore {
-        Keystore::Local => {
-            let local_keystore = keystore::local::LocalEncryptedKeystore::new(PathBuf::from_str(
-                args.bn254_keypair_location,
-            )?);
+        Keystore::Local { path } => {
+            let local_keystore = keystore::local::LocalEncryptedKeystore::new(path.clone());
             local_keystore.retrieve(bn254_passphrase)?
         }
-        Keystore::Aws => todo!(),
+        Keystore::Aws { secret: _ } => todo!(),
     };
 
     let secp256k1_passphrase = match args.secp256k1_passphrase {
@@ -55,10 +50,8 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
     };
 
     let secp256k1_keypair = match args.secp256k1_keystore {
-        Keystore::Local => {
-            LocalSigner::decrypt_keystore(args.secp256k1_keypair_location, secp256k1_passphrase)?
-        }
-        Keystore::Aws => todo!(),
+        Keystore::Local { path } => LocalSigner::decrypt_keystore(path, secp256k1_passphrase)?,
+        Keystore::Aws { secret: _ } => todo!(),
     };
 
     let wallet = EthereumWallet::from(secp256k1_keypair.clone());
