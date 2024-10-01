@@ -1,6 +1,9 @@
 use base64::Engine;
 use clap::ValueEnum;
+use std::path::PathBuf;
 use thiserror::Error;
+
+use crate::config::models::Keystore;
 
 #[derive(Clone, ValueEnum, Debug)]
 pub enum Curve {
@@ -15,6 +18,25 @@ pub enum Curve {
 pub enum Scheme {
     /// Boneh–Lynn–Shacham (BLS) signature scheme using BN254
     Bls,
+}
+
+#[derive(Clone, ValueEnum, Debug)]
+pub enum KeystoreType {
+    Local,
+    Aws,
+}
+
+impl KeystoreType {
+    pub fn parse_keystore(keystore: Self, value: String) -> color_eyre::eyre::Result<Keystore> {
+        match keystore {
+            Self::Local => Ok(Keystore::Local {
+                path: PathBuf::from(value).canonicalize()?,
+            }),
+            Self::Aws => Ok(Keystore::Aws {
+                secret: value.to_string(),
+            }),
+        }
+    }
 }
 
 // TODO: Move the encoding enum to the SDK crate

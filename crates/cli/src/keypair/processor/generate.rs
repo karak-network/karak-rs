@@ -11,7 +11,7 @@ use karak_kms::{
     },
 };
 
-use crate::config::models::Keystore;
+use crate::shared::KeystoreType;
 use crate::{keypair::KeypairArgs, shared::Curve};
 
 pub async fn process_generate(
@@ -38,7 +38,7 @@ pub async fn process_generate(
             };
 
             match keystore {
-                Keystore::Local { path: _ } => {
+                KeystoreType::Local => {
                     fs::File::create(&output_path)?;
 
                     let local_keystore =
@@ -50,7 +50,7 @@ pub async fn process_generate(
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
                 }
-                Keystore::Aws { secret: _ } => {
+                KeystoreType::Aws => {
                     let config = aws_config::load_from_env().await;
                     let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
 
@@ -82,7 +82,7 @@ pub async fn process_generate(
                 None => rpassword::prompt_password("Enter keypair passphrase: ")?,
             };
             match keystore {
-                Keystore::Local { path: _ } => {
+                KeystoreType::Local => {
                     let filename = "secp256k1.json";
                     let keypath = generation_folder.join(filename);
 
@@ -100,7 +100,7 @@ pub async fn process_generate(
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
                 }
-                Keystore::Aws { secret: _ } => {
+                KeystoreType::Aws => {
                     todo!()
                 }
             }

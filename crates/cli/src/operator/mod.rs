@@ -4,14 +4,14 @@ use alloy::primitives::Address;
 use clap::Subcommand;
 use url::Url;
 
-use crate::{config::models::Keystore, shared::Encoding};
+use crate::shared::{Encoding, KeystoreType};
 
 #[derive(Subcommand, Debug)]
 pub enum Operator {
     /// Perform BLS registration to DSS
     Register {
         #[arg(long, help = "Type of the BN254 keystore")]
-        bn254_keystore_type: Option<Keystore>,
+        bn254_keystore_type: Option<KeystoreType>,
 
         #[arg(long, help = "Path to the BN254 keystore, either a file or an url")]
         bn254_keystore: Option<String>,
@@ -20,7 +20,7 @@ pub enum Operator {
         bn254_passphrase: Option<String>,
 
         #[arg(long, help = "Type of the SECP256k1 keystore")]
-        secp256k1_keystore_type: Option<Keystore>,
+        secp256k1_keystore_type: Option<KeystoreType>,
 
         #[arg(long, help = "Path to the SECP256k1 keystore, either a file or an url")]
         secp256k1_keystore: Option<String>,

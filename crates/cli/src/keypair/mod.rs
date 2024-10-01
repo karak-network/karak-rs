@@ -2,8 +2,7 @@ pub mod processor;
 
 use clap::{Args, Parser, Subcommand};
 
-use crate::config::models::Keystore;
-use crate::shared::Curve;
+use crate::shared::{Curve, KeystoreType};
 
 #[derive(Parser)]
 #[command(version, about = "Karak keypair CLI", long_about = None)]
@@ -40,7 +39,7 @@ pub enum Keypair {
 pub struct KeypairArgs {
     /// Keystore to save the keypair
     #[arg(short = 's', long)]
-    pub keystore: Keystore,
+    pub keystore: KeystoreType,
 
     /// Passphrase to encrypt keypair
     #[arg(long)]

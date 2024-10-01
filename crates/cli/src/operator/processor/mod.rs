@@ -1,12 +1,10 @@
 pub mod registration;
 
-use std::{path::PathBuf, str::FromStr};
-
 use color_eyre::eyre;
 
 use super::Operator;
-use crate::config::models::{Chain, Keystore, Profile};
-
+use crate::config::models::{Chain, Profile};
+use crate::shared::KeystoreType;
 pub async fn process(command: Operator, profile: Profile) -> eyre::Result<()> {
     match command {
         Operator::Register {
@@ -22,25 +20,13 @@ pub async fn process(command: Operator, profile: Profile) -> eyre::Result<()> {
             message_encoding,
         } => {
             let bn254_keystore = match bn254_keystore_type {
-                Some(keystore) => match keystore {
-                    Keystore::Aws { secret: _ } => Keystore::Aws {
-                        secret: bn254_keystore.unwrap(),
-                    },
-                    Keystore::Local { path: _ } => Keystore::Local {
-                        path: PathBuf::from_str(&bn254_keystore.unwrap()).unwrap(),
-                    },
-                },
+                Some(keystore) => KeystoreType::parse_keystore(keystore, bn254_keystore.unwrap())?,
                 None => profile.bn254_keystore,
             };
             let secp256k1_keystore = match secp256k1_keystore_type {
-                Some(keystore) => match keystore {
-                    Keystore::Aws { secret: _ } => Keystore::Aws {
-                        secret: secp256k1_keystore.unwrap(),
-                    },
-                    Keystore::Local { path: _ } => Keystore::Local {
-                        path: PathBuf::from_str(&secp256k1_keystore.unwrap()).unwrap(),
-                    },
-                },
+                Some(keystore) => {
+                    KeystoreType::parse_keystore(keystore, secp256k1_keystore.unwrap())?
+                }
                 None => profile.secp256k1_keystore,
             };
 
