@@ -156,7 +156,7 @@ mod tests {
         let message = [42u8; 32];
 
         let expected_signature = precomputed_signature_for_keypair();
-        let actual_signature = signer.try_sign(&message).unwrap();
+        let actual_signature = signer.sign(&message);
         assert_eq!(actual_signature, *expected_signature);
 
         assert!(signer
@@ -175,7 +175,7 @@ mod tests {
         let signer = KeypairSigner::from(keypair.clone());
         let message = [42u8; 32];
 
-        let signature = signer.try_sign(&message).unwrap();
+        let signature = signer.sign(&message);
 
         assert!(signer.verifying_key().verify(&message, &signature).is_ok());
         assert!(keypair.public_key().verify(&message, &signature).is_ok());
@@ -188,7 +188,7 @@ mod tests {
         let signer = KeypairSigner::from(keypair.clone());
         let message = [42u8; 32];
 
-        let signature = signer.try_sign(&message).unwrap();
+        let signature = signer.sign(&message);
 
         assert!(signer.verifying_key().verify(&message, &signature).is_err());
         assert!(other_keypair
@@ -209,7 +209,7 @@ mod tests {
         let signatures: Vec<_> = signers
             .iter()
             .take(3)
-            .map(|signer| signer.try_sign(&message).unwrap())
+            .map(|signer| signer.sign(&message))
             .collect();
 
         let aggregated_sig = signatures.iter().sum();
@@ -241,7 +241,7 @@ mod tests {
         let signatures: Vec<_> = signers
             .iter()
             .take(2) // Only sign with the first two keypairs
-            .map(|signer| signer.try_sign(&message).unwrap())
+            .map(|signer| signer.sign(&message))
             .collect();
 
         let aggregated_sig = signatures.iter().sum();
@@ -270,8 +270,8 @@ mod tests {
         let message1 = [1u8; 32];
         let message2 = [2u8; 32];
 
-        let signature1 = signer.try_sign(&message1).unwrap();
-        let signature2 = signer.try_sign(&message2).unwrap();
+        let signature1 = signer.sign(&message1);
+        let signature2 = signer.sign(&message2);
 
         assert!(keypair
             .public_key()
