@@ -13,7 +13,6 @@ use super::super::{
 
 use super::signature::Signature;
 
-
 impl signature::Keypair for Bn254Keypair {
     type VerifyingKey = G2Pubkey;
 
@@ -178,7 +177,10 @@ mod tests {
 
         let signature = keypair.sign(&message);
 
-        assert!(other_keypair.verifying_key().verify(&message, &signature).is_err());
+        assert!(other_keypair
+            .verifying_key()
+            .verify(&message, &signature)
+            .is_err());
         assert!(other_keypair
             .public_key()
             .verify(&message, &signature)
