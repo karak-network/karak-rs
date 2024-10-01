@@ -9,12 +9,12 @@ use super::Keypair;
 use crate::config::models::Profile;
 
 // TODO: use profile where needed
-pub async fn process(command: Keypair, _: Profile) -> eyre::Result<()> {
+pub async fn process(command: Keypair, profile: Profile) -> eyre::Result<()> {
     match command {
         Keypair::Generate {
             keypair: keypair_args,
             curve,
-        } => process_generate(keypair_args, curve).await,
+        } => process_generate(keypair_args, curve, profile.key_generation_folder).await,
         Keypair::Pubkey {
             keypair: keypair_args,
             keypair_location: keypair_location_args,

@@ -14,7 +14,11 @@ use karak_kms::{
 use crate::config::models::Keystore;
 use crate::{keypair::KeypairArgs, shared::Curve};
 
-pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::Result<()> {
+pub async fn process_generate(
+    keypair_args: KeypairArgs,
+    curve: Curve,
+    generation_folder: PathBuf,
+) -> eyre::Result<()> {
     let KeypairArgs {
         keystore,
         passphrase,
@@ -26,6 +30,8 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
             let keypair = bn254::Keypair::generate();
             println!("Generated BN254 keypair with public key: {keypair}");
 
+            let output_path = generation_folder.join(format!("{keypair}.bls"));
+
             let passphrase = match passphrase {
                 Some(passphrase) => passphrase,
                 None => rpassword::prompt_password("Enter keypair passphrase: ")?,
@@ -33,19 +39,13 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
 
             match keystore {
                 Keystore::Local { path: _ } => {
-                    let output = PathBuf::from(format!("{keypair}.bls"));
-
-                    if let Some(parent) = output.parent() {
-                        fs::create_dir_all(parent)?;
-                    }
-
-                    fs::File::create(&output)?;
+                    fs::File::create(&output_path)?;
 
                     let local_keystore =
-                        keystore::local::LocalEncryptedKeystore::new(output.clone());
+                        keystore::local::LocalEncryptedKeystore::new(output_path.clone());
                     local_keystore.store(&keypair, &passphrase)?;
 
-                    let resolved_path = output.canonicalize()?;
+                    let resolved_path = output_path.canonicalize()?;
                     let resolved_path_str =
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
@@ -83,13 +83,8 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
             };
             match keystore {
                 Keystore::Local { path: _ } => {
-                    let keypath = dirs_next::home_dir()
-                        .ok_or(eyre!("Home directory not found"))?
-                        .join(".config")
-                        .join("karak");
                     let filename = "secp256k1.json";
-
-                    fs::create_dir_all(&keypath)?;
+                    let keypath = generation_folder.join(filename);
 
                     let resolved_path = keypath.join(filename).canonicalize()?;
 

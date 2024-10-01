@@ -100,7 +100,7 @@ fn prompt_key_generation_folder() -> PathBuf {
         .unwrap();
 
     // TODO: get absolute path
-    PathBuf::from(folder)
+    PathBuf::from(folder).canonicalize().unwrap()
 }
 
 fn prompt_chain() -> Chain {
@@ -148,17 +148,24 @@ fn prompt_keystore(name: &str) -> Keystore {
 
     match keystore_index {
         0 => {
-            let path: String = Input::with_theme(&theme)
-                .with_prompt(format!("Enter {} local keystore path", name))
-                .interact_text()
-                .unwrap();
-            Keystore::Local {
-                path: PathBuf::from(path),
-            }
+            let path: PathBuf = loop {
+                let input: String = Input::with_theme(&theme)
+                    .with_prompt(format!("Enter {} local keystore path", name))
+                    .interact_text()
+                    .unwrap();
+                match PathBuf::from(input).canonicalize() {
+                    Ok(canonicalized_path) => break canonicalized_path,
+                    Err(_) => {
+                        println!("Invalid path or unable to canonicalize. Please try again.");
+                        continue;
+                    }
+                }
+            };
+            Keystore::Local { path }
         }
         _ => {
             let secret: String = Input::with_theme(&theme)
-                .with_prompt(format!("Enter {} aws key location url", name))
+                .with_prompt(format!("Enter {} aws key location secret name", name))
                 .interact_text()
                 .unwrap();
             Keystore::Aws { secret }
