@@ -11,10 +11,8 @@ use karak_kms::{
     },
 };
 
-use crate::{
-    keypair::KeypairArgs,
-    shared::{Curve, Keystore},
-};
+use crate::config::models::Keystore;
+use crate::{keypair::KeypairArgs, shared::Curve};
 
 pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::Result<()> {
     let KeypairArgs {
@@ -34,7 +32,7 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
             };
 
             match keystore {
-                Keystore::Local => {
+                Keystore::Local { path: _ } => {
                     let output = PathBuf::from(format!("{keypair}.bls"));
 
                     if let Some(parent) = output.parent() {
@@ -52,7 +50,7 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
                 }
-                Keystore::Aws => {
+                Keystore::Aws { secret: _ } => {
                     let config = aws_config::load_from_env().await;
                     let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
 
@@ -84,7 +82,7 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
                 None => rpassword::prompt_password("Enter keypair passphrase: ")?,
             };
             match keystore {
-                Keystore::Local => {
+                Keystore::Local { path: _ } => {
                     let keypath = dirs_next::home_dir()
                         .ok_or(eyre!("Home directory not found"))?
                         .join(".config")
@@ -107,7 +105,7 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
                 }
-                Keystore::Aws => {
+                Keystore::Aws { secret: _ } => {
                     todo!()
                 }
             }

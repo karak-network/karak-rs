@@ -70,7 +70,8 @@ pub fn get_profile(config: &Config, profile: &str) -> Result<Profile, ConfigErro
 pub fn profile_prompt() -> Profile {
     // TODO: take optional config if already configured and set defaults in prompts
     let chain = prompt_chain();
-    let keystore = prompt_keystore();
+    let bn254_keystore = prompt_keystore("BLS");
+    let secp256k1_keystore = prompt_keystore("ECDSA");
     let karak_address = loop {
         match Address::from_str(&prompt_address()) {
             Ok(address) => break address,
@@ -81,11 +82,25 @@ pub fn profile_prompt() -> Profile {
         }
     };
 
+    let key_generation_folder = prompt_key_generation_folder();
+
     Profile {
         chain,
-        keystore,
+        bn254_keystore,
+        secp256k1_keystore,
         karak_address,
+        key_generation_folder,
     }
+}
+
+fn prompt_key_generation_folder() -> PathBuf {
+    let folder: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enter key generation folder path")
+        .interact_text()
+        .unwrap();
+
+    // TODO: get absolute path
+    PathBuf::from(folder)
 }
 
 fn prompt_chain() -> Chain {
@@ -104,19 +119,28 @@ fn prompt_chain() -> Chain {
         .with_prompt("Enter chain ID")
         .interact_text()
         .unwrap();
-    let rpc_url: String = Input::with_theme(&theme)
-        .with_prompt("Enter RPC URL")
-        .interact_text()
-        .unwrap();
+    let rpc_url: url::Url = loop {
+        let input: String = Input::with_theme(&theme)
+            .with_prompt("Enter RPC URL")
+            .interact_text()
+            .unwrap();
+        match url::Url::parse(&input) {
+            Ok(url) => break url,
+            Err(_) => {
+                println!("Invalid URL format. Please try again.");
+                continue;
+            }
+        }
+    };
     Chain::Evm { id, rpc_url }
 }
 
-fn prompt_keystore() -> Keystore {
+fn prompt_keystore(name: &str) -> Keystore {
     let theme = ColorfulTheme::default();
 
     let keystore_options = vec!["Local", "AWS"];
     let keystore_index = Select::with_theme(&theme)
-        .with_prompt("Select keystore type")
+        .with_prompt(format!("Select {} keystore type", name))
         .default(0)
         .items(&keystore_options)
         .interact()
@@ -125,14 +149,20 @@ fn prompt_keystore() -> Keystore {
     match keystore_index {
         0 => {
             let path: String = Input::with_theme(&theme)
-                .with_prompt("Enter local keystore path")
+                .with_prompt(format!("Enter {} local keystore path", name))
                 .interact_text()
                 .unwrap();
             Keystore::Local {
                 path: PathBuf::from(path),
             }
         }
-        _ => Keystore::Aws,
+        _ => {
+            let secret: String = Input::with_theme(&theme)
+                .with_prompt(format!("Enter {} aws key location url", name))
+                .interact_text()
+                .unwrap();
+            Keystore::Aws { secret }
+        }
     }
 }
 

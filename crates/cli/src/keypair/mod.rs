@@ -2,7 +2,8 @@ pub mod processor;
 
 use clap::{Args, Parser, Subcommand};
 
-use crate::shared::{Curve, Keystore};
+use crate::config::models::Keystore;
+use crate::shared::Curve;
 
 #[derive(Parser)]
 #[command(version, about = "Karak keypair CLI", long_about = None)]
