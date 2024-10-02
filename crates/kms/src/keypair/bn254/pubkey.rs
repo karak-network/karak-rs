@@ -90,7 +90,7 @@ mod test {
     #[test]
     fn pubkeys_from_same_secret_key_should_pass_check() {
         let keypair = Bn254Keypair::generate();
-        let pubkey = keypair.public_key().clone();
+        let pubkey = keypair.public_key();
         assert!(pubkey.check().is_ok());
     }
 
@@ -98,8 +98,8 @@ mod test {
     fn pubkeys_from_different_secret_key_should_fail_check() {
         let keypair1 = Bn254Keypair::generate();
         let keypair2 = Bn254Keypair::generate();
-        let pubkey1 = keypair1.public_key().clone();
-        let pubkey2 = keypair2.public_key().clone();
+        let pubkey1 = keypair1.public_key();
+        let pubkey2 = keypair2.public_key();
         let pubkey = PublicKey {
             g1: pubkey1.g1,
             g2: pubkey2.g2,
