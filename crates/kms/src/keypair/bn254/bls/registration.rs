@@ -55,7 +55,7 @@ mod tests {
     use std::str::FromStr;
 
     use super::*;
-    use alloy::primitives::{keccak256, U256};
+    use alloy::primitives::U256;
 
     #[test]
     fn test_registration_abi_encode() -> eyre::Result<()> {
@@ -79,7 +79,6 @@ mod tests {
         let g1_pubkey = G1Pubkey::from((g1_x, g1_y));
         let g2_pubkey = G2Pubkey::from(([g2_x1, g2_x0], [g2_y1, g2_y0]));
         let signature = Signature::from((signature_x, signature_y));
-        let msg_hash = keccak256(b"test message");
         let registration = BlsRegistration {
             g1_pubkey,
             g2_pubkey,
@@ -92,7 +91,6 @@ mod tests {
             (g1_x, g1_y),
             ([g2_x1, g2_x0], [g2_y1, g2_y0]),
             (signature_x, signature_y),
-            msg_hash,
         )
             .abi_encode();
 
