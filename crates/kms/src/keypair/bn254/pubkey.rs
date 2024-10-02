@@ -14,7 +14,7 @@ use super::{
 pub type G1Pubkey = G1Point;
 pub type G2Pubkey = G2Point;
 
-#[derive(Clone, Debug, PartialEq, Eq, CanonicalSerialize, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, CanonicalSerialize, Serialize, Deserialize, Hash)]
 pub struct PublicKey {
     pub g1: G1Pubkey,
     pub g2: G2Pubkey,
