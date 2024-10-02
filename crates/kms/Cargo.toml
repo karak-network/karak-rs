@@ -2,7 +2,7 @@
 name = "karak-kms"
 license = { workspace = true }
 description = "Karak Key Management SDK"
-version = { workspace = true }
+version = "0.2.0"
 authors = { workspace = true }
 repository = { workspace = true }
 edition = { workspace = true }
@@ -25,6 +25,7 @@ bs58 = "0.5.1"
 ctr = "0.9.2"
 eyre = "0.6.12"
 hex = "0.4"
+karak-contracts = { path = "../contracts" }
 rand = "0.8.5"
 scrypt = "0.11"
 serde = { version = "1.0", features = ["derive"] }
@@ -35,7 +36,6 @@ thiserror = "1.0.63"
 tokio = { workspace = true }
 trait-variant = "0.1.2"
 url = "2.5.2"
-karak-contracts = { version = "0.2.0", path = "../contracts" }
 
 [dev-dependencies]
 alloy = { workspace = true, features = ["node-bindings"] }
