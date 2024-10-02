@@ -115,12 +115,14 @@ async fn test_registration() -> Result<()> {
 
     let message = keccak256(b"hello world");
     let signature = keypair.sign(message.as_ref());
-    let registration = BlsRegistration {
-        g1_pubkey: keypair.public_key().g1,
-        g2_pubkey: keypair.public_key().g2,
-        signature,
-        msg_hash: message,
-    };
+    let registration = (
+        BlsRegistration {
+            g1_pubkey: keypair.public_key().g1,
+            g2_pubkey: keypair.public_key().g2,
+            signature,
+        },
+        message,
+    );
 
     let verified = verify
         .verifySignature(registration.abi_encode().into())

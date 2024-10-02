@@ -1,5 +1,4 @@
-use super::super::{G1Pubkey, G2Pubkey};
-use super::signature::Signature;
+use crate::keypair::bn254::{bls::signature::Signature, G1Pubkey, G2Pubkey};
 use alloy::{
     primitives::{Address, Bytes, TxHash},
     providers::Provider,
@@ -15,7 +14,6 @@ sol!(
         G1Pubkey g1_pubkey;
         G2Pubkey g2_pubkey;
         Signature signature;
-        bytes32 msg_hash;
     }
 );
 
@@ -86,7 +84,6 @@ mod tests {
             g1_pubkey,
             g2_pubkey,
             signature,
-            msg_hash,
         };
 
         let encoded = registration.abi_encode();

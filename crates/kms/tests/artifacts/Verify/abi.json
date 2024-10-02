@@ -1,21 +1,21 @@
 [
-    {
-        "type": "function",
-        "name": "verifySignature",
-        "inputs": [
-            {
-                "name": "input",
-                "type": "bytes",
-                "internalType": "bytes"
-            }
-        ],
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool",
-                "internalType": "bool"
-            }
-        ],
-        "stateMutability": "view"
-    }
+  {
+    "type": "function",
+    "name": "verifySignature",
+    "inputs": [
+      {
+        "name": "input",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  }
 ]
