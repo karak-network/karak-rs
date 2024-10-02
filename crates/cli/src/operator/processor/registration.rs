@@ -70,6 +70,7 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
         .on_http(args.rpc_url);
     let core = CoreInstance::new(args.core_address, provider.clone());
 
+    // TODO: Get this value from the DSS contract not from the args
     let msg_bytes = args.message_encoding.decode(args.message)?;
     let msg_hash = keccak256(msg_bytes);
     let signature = bn254_keypair.sign(msg_hash.as_ref());
@@ -77,7 +78,6 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
         g1_pubkey: bn254_keypair.public_key().g1,
         g2_pubkey: bn254_keypair.public_key().g2,
         signature,
-        msg_hash,
     };
     core.register_operator_to_dss_with_bls(args.dss_address, &registration)
         .await?;
