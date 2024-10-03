@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use ark_bn254::{Fr, G1Affine, G2Affine};
 use ark_ec::{AffineRepr, CurveGroup};
@@ -7,6 +7,7 @@ use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
 use rand::thread_rng;
+use serde::Deserialize;
 use thiserror::Error;
 
 use super::traits::Keypair as KeypairTrait;
@@ -30,6 +31,21 @@ pub enum Bn254Error {
     SerializationError(SerializationError),
     #[error("Decoding error: {0}")]
     DecodingError(#[from] bs58::decode::Error),
+    #[error("Invalid public key")]
+    InvalidPublicKey,
+}
+
+impl Keypair {
+    pub fn new(secret_key: Fr, public_key: PublicKey) -> Result<Self, Bn254Error> {
+        let keypair = Self {
+            secret_key,
+            public_key,
+        };
+
+        keypair.check()?;
+
+        Ok(keypair)
+    }
 }
 
 impl From<SerializationError> for Bn254Error {
@@ -63,19 +79,30 @@ impl CanonicalDeserialize for Keypair {
         let g1_public_key = (G1Affine::generator() * secret_key).into_affine();
         let g2_public_key = (G2Affine::generator() * secret_key).into_affine();
 
-        Ok(Self {
+        let public_key = PublicKey {
+            g1: g1_public_key.into(),
+            g2: g2_public_key.into(),
+        };
+
+        let keypair = Keypair {
             secret_key,
-            public_key: PublicKey {
-                g1: g1_public_key.into(),
-                g2: g2_public_key.into(),
-            },
-        })
+            public_key,
+        };
+
+        if let Validate::Yes = validate {
+            keypair.check()?;
+        }
+
+        Ok(keypair)
     }
 }
 
 impl Valid for Keypair {
     fn check(&self) -> Result<(), SerializationError> {
-        self.secret_key.check()
+        self.secret_key.check()?;
+        self.public_key.check()?;
+
+        Ok(())
     }
 }
 
@@ -130,6 +157,25 @@ impl KeypairTrait for Keypair {
 impl Display for Keypair {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.public_key.fmt(f)
+    }
+}
+
+impl FromStr for Keypair {
+    type Err = Bn254Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let bytes = bs58::decode(s).into_vec()?;
+        Keypair::from_bytes(&bytes)
+    }
+}
+
+impl<'de> Deserialize<'de> for Keypair {
+    fn deserialize<D>(deserializer: D) -> Result<Keypair, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s: String = Deserialize::deserialize(deserializer)?;
+        Keypair::from_str(&s).map_err(serde::de::Error::custom)
     }
 }
 
