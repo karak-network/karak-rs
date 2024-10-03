@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::keypair::bn254::Bn254Error;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, CanonicalSerialize, CanonicalDeserialize, Hash)]
 pub struct G2Point(pub G2Affine);
 
 impl G2Point {
