@@ -8,5 +8,5 @@ repository = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-karak-contracts = { path = "../contracts" }
-karak-kms = { path = "../kms" }
+karak-contracts = { workspace = true }
+karak-kms = { workspace = true }

@@ -9,5 +9,14 @@ repository = "https://github.com/karak-network/karak-rs"
 edition = "2021"
 
 [workspace.dependencies]
+karak-contracts = { version = "0.2.0", path = "crates/contracts" }
+karak-kms = { version = "0.2.0", path = "crates/kms" }
+
 alloy = { version = "0.3.3", features = ["full"] }
+alloy-serde = "0.3.3"
+alloy-sol-types = "0.8.3"
+async-trait = "0.1.83"
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
 tokio = { version = "1.40.0", features = ["full"] }
+trait-variant = "0.1.2"
