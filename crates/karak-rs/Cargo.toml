@@ -2,11 +2,11 @@
 name = "karak-rs"
 license = { workspace = true }
 description = "Karak Rust SDK"
-version = { workspace = true }
+version = "0.2.0"
 authors = { workspace = true }
 repository = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-karak-contracts = { version = "0.2.0", path = "../contracts" }
-karak-kms = { version = "0.2.0", path = "../kms" }
+karak-contracts = { workspace = true }
+karak-kms = { workspace = true }
