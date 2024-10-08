@@ -3,7 +3,7 @@ use std::ops::Neg;
 use ark_bn254::{Bn254, Fq, G1Affine, G2Affine};
 use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
 use ark_ff::{BigInt, Field, One, PrimeField};
-use signature::{Error as SignatureError, Signer, Verifier};
+pub use signature::{Error as SignatureError, Signer, Verifier};
 
 use crate::keypair::bn254::PublicKey;
 
