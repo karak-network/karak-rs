@@ -179,8 +179,6 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
                 }
             }
         }
-
-        Ok(())
     }
 
     pub fn publish_message(&mut self, topic: &str, message: M) -> Result<(), KarakP2PError> {
