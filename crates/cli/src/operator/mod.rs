@@ -37,6 +37,9 @@ pub enum OperatorCommand {
 
         #[arg(long)]
         extra_data: Option<Bytes>,
+
+        #[arg(long)]
+        vault_impl: Address,
     },
 }
 
