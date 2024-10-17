@@ -13,9 +13,11 @@ pub async fn process_registry_registration<T: Transport + Clone, P: Provider<T>>
         .await?
         .get_receipt()
         .await?;
+
     println!(
         "Registered operator to registry: {}",
         receipt.transaction_hash
     );
+
     Ok(())
 }

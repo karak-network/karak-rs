@@ -33,14 +33,16 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T>>(
         extraData: extra_data,
     };
 
-    let vault_address = core_instance
+    let receipt = core_instance
         .deployVaults(vec![vault_config], vault_impl)
         .send()
         .await?
         .get_receipt()
-        .await?
-        .inner
-        .logs()[3]
+        .await?;
+
+    println!("Vault deployed: {}", receipt.transaction_hash);
+
+    let vault_address = receipt.inner.logs()[3]
         .log_decode::<Core::DeployedVault>()?
         .inner
         .data

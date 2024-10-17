@@ -54,9 +54,12 @@ pub async fn process_registration<T: Transport + Clone, P: Provider<T>>(
         g2_pubkey: bn254_keypair.public_key().g2,
         signature,
     };
-    args.core_instance
+    let tx_hash = args
+        .core_instance
         .register_operator_to_dss_with_bls(args.dss_address, &registration)
         .await?;
+
+    println!("Operator registered to DSS: {}", tx_hash);
 
     Ok(())
 }
