@@ -1,9 +1,12 @@
 pub mod dss;
+pub mod registry;
 pub mod vault;
 
 use alloy::{network::EthereumWallet, providers::ProviderBuilder, signers::local::LocalSigner};
 use color_eyre::eyre::{self, eyre};
-use karak_contracts::Core::CoreInstance;
+use karak_contracts::{
+    erc20::mintable::ERC20Mintable, registry::RestakingRegistry, Core::CoreInstance,
+};
 
 use crate::shared::Keystore;
 
@@ -64,15 +67,25 @@ pub async fn process(args: OperatorArgs) -> eyre::Result<()> {
             extra_data,
             vault_impl,
         } => {
+            let erc20_instance = ERC20Mintable::new(asset_address, provider.clone());
+
             vault::process_vault_creation(
                 asset_address,
                 extra_data,
                 operator_address,
                 vault_impl,
                 core_instance,
-                provider,
+                erc20_instance,
             )
             .await?
+        }
+        OperatorCommand::RegisterToRegistry {
+            registry_address,
+            kns,
+        } => {
+            let registry_instance = RestakingRegistry::new(registry_address, provider);
+            registry::process_registry_registration(kns, operator_address, registry_instance)
+                .await?
         }
     }
 

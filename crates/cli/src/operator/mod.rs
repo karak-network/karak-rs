@@ -41,6 +41,15 @@ pub enum OperatorCommand {
         #[arg(long)]
         vault_impl: Address,
     },
+
+    /// Perform registration with the registry
+    RegisterToRegistry {
+        #[arg(long)]
+        registry_address: Address,
+
+        #[arg(long)]
+        kns: String,
+    },
 }
 
 #[derive(Debug, Args)]
@@ -60,6 +69,7 @@ pub struct OperatorArgs {
     #[arg(short, long, default_value = "http://localhost:8545")]
     /// RPC endpoint
     rpc_url: Url,
+
     #[arg(short, long)]
     /// Core addresss
     core_address: Address,

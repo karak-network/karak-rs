@@ -6,7 +6,7 @@ use alloy::{
 use eyre::Result;
 use karak_contracts::{
     core::contract::VaultLib,
-    erc20::mintable::ERC20Mintable,
+    erc20::mintable::ERC20Mintable::ERC20MintableInstance,
     Core::{self, CoreInstance},
 };
 
@@ -16,11 +16,10 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T>>(
     operator_address: Address,
     vault_impl: Address,
     core_instance: CoreInstance<T, P>,
-    provider: P,
+    erc20_instance: ERC20MintableInstance<T, P>,
 ) -> Result<()> {
     let extra_data = extra_data.unwrap_or_default();
 
-    let erc20_instance = ERC20Mintable::new(asset_address, provider);
     let decimals = erc20_instance.decimals().call().await?._0;
     let name = erc20_instance.name().call().await?._0;
     let symbol = erc20_instance.symbol().call().await?._0;

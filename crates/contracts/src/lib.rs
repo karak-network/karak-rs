@@ -1,5 +1,6 @@
 pub mod core;
 pub mod erc20;
+pub mod registry;
 pub mod stake_viewer;
 pub mod vault;
 
