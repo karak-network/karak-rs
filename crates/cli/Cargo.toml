@@ -16,6 +16,7 @@ bs58 = "0.5.1"
 clap = { version = "4.5.17", features = ["derive"] }
 color-eyre = "0.6.3"
 dirs-next = "2.0.0"
+eyre = "0.6.12"
 hex = "0.4.3"
 karak-contracts = { workspace = true }
 karak-kms = { workspace = true }

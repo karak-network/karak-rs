@@ -1,39 +1,70 @@
-pub mod registration;
+pub mod dss;
+pub mod vault;
 
-use color_eyre::eyre;
+use alloy::{network::EthereumWallet, providers::ProviderBuilder, signers::local::LocalSigner};
+use color_eyre::eyre::{self, eyre};
+use karak_contracts::Core::CoreInstance;
 
-use super::Operator;
+use crate::shared::Keystore;
 
-pub async fn process(command: Operator) -> eyre::Result<()> {
-    match command {
-        Operator::Register {
+use super::{OperatorArgs, OperatorCommand};
+
+pub async fn process(args: OperatorArgs) -> eyre::Result<()> {
+    let operator_wallet = match args.secp256k1_keystore {
+        Keystore::Local => {
+            let Some(secp256k1_keypair_location) = args.secp256k1_keypair_location else {
+                return Err(eyre!("SECP256k1 keypair location is required"));
+            };
+            let secp256k1_passphrase = match args.secp256k1_passphrase {
+                Some(passphrase) => passphrase,
+                None => rpassword::prompt_password("Enter SECP256k1 keypair passphrase: ")?,
+            };
+
+            let secp_256k1_signer =
+                LocalSigner::decrypt_keystore(secp256k1_keypair_location, secp256k1_passphrase)?;
+
+            EthereumWallet::from(secp_256k1_signer)
+        }
+        Keystore::Aws => {
+            todo!();
+        }
+    };
+
+    let provider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .wallet(operator_wallet)
+        .on_http(args.rpc_url);
+
+    let core_instance = CoreInstance::new(args.core_address, provider);
+
+    match args.command {
+        OperatorCommand::RegisterToDSS {
             bn254_keypair_location,
             bn254_keystore,
             bn254_passphrase,
-            secp256k1_keypair_location,
-            secp256k1_keystore,
-            secp256k1_passphrase,
-            rpc_url,
-            core_address,
             dss_address,
             message,
             message_encoding,
         } => {
-            registration::process_registration(registration::RegistrationArgs {
+            dss::process_registration(dss::DSSRegistrationArgs {
                 bn254_keypair_location: &bn254_keypair_location,
                 bn254_keystore: &bn254_keystore,
                 bn254_passphrase: bn254_passphrase.as_deref(),
-                secp256k1_keypair_location: &secp256k1_keypair_location,
-                secp256k1_keystore: &secp256k1_keystore,
-                secp256k1_passphrase: secp256k1_passphrase.as_deref(),
-                rpc_url,
-                core_address,
+                core_instance: core_instance.clone(),
                 dss_address,
                 message: &message,
                 message_encoding: &message_encoding,
             })
             .await?
         }
+        OperatorCommand::CreateVault {
+            asset_address,
+            extra_data,
+        } => {
+            vault::process_vault_creation(&asset_address, extra_data.as_ref(), core_instance)
+                .await?
+        }
     }
+
     Ok(())
 }
