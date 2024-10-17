@@ -10,6 +10,31 @@ use crate::shared::{Encoding, Keystore};
 
 #[derive(Debug, Subcommand)]
 pub enum OperatorCommand {
+    /// Perform vault creation
+    CreateVault {
+        #[arg(long)]
+        asset_address: Address,
+
+        #[arg(long)]
+        extra_data: Option<Bytes>,
+
+        #[arg(long)]
+        vault_impl: Address,
+
+        /// Core address
+        #[arg(short, long)]
+        core_address: Address,
+    },
+
+    /// Perform registration with the registry
+    RegisterToRegistry {
+        #[arg(long)]
+        registry_address: Address,
+
+        #[arg(long)]
+        kns: String,
+    },
+
     /// Perform BLS registration to DSS
     RegisterToDSS {
         #[arg(long)]
@@ -28,27 +53,10 @@ pub enum OperatorCommand {
 
         #[arg(long)]
         message_encoding: Encoding,
-    },
 
-    /// Perform Core registration
-    CreateVault {
-        #[arg(long)]
-        asset_address: Address,
-
-        #[arg(long)]
-        extra_data: Option<Bytes>,
-
-        #[arg(long)]
-        vault_impl: Address,
-    },
-
-    /// Perform registration with the registry
-    RegisterToRegistry {
-        #[arg(long)]
-        registry_address: Address,
-
-        #[arg(long)]
-        kns: String,
+        /// Core address
+        #[arg(short, long)]
+        core_address: Address,
     },
 }
 
@@ -57,20 +65,16 @@ pub struct OperatorArgs {
     #[command(subcommand)]
     pub command: OperatorCommand,
 
-    #[arg(long)]
-    secp256k1_keystore: Keystore,
+    #[arg(long, global(true), default_value = "local")]
+    secp256k1_keystore_type: Keystore,
 
-    #[arg(long, required_if_eq("secp256k1_keystore", "Local"))]
-    secp256k1_keypair_location: Option<PathBuf>,
+    #[arg(long, required_if_eq("secp256k1_keystore_type", "local"), global(true))]
+    secp256k1_keystore_path: Option<PathBuf>,
 
-    #[arg(long)]
+    #[arg(long, global(true))]
     secp256k1_passphrase: Option<String>,
 
-    #[arg(short, long, default_value = "http://localhost:8545")]
     /// RPC endpoint
+    #[arg(short, long, global(true), default_value = "http://localhost:8545")]
     rpc_url: Url,
-
-    #[arg(short, long)]
-    /// Core addresss
-    core_address: Address,
 }
