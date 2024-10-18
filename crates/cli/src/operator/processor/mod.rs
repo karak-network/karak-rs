@@ -1,5 +1,6 @@
 pub mod dss;
 pub mod registry;
+pub mod stake;
 pub mod vault;
 
 use alloy::{network::EthereumWallet, providers::ProviderBuilder, signers::local::LocalSigner};
@@ -89,6 +90,41 @@ pub async fn process(args: OperatorArgs) -> eyre::Result<()> {
             let registry_instance = RestakingRegistry::new(registry_address, provider);
             registry::process_registry_registration(kns, operator_address, registry_instance)
                 .await?
+        }
+        OperatorCommand::RequestStakeUpdate {
+            vault_address,
+            dss_address,
+            stake_update_type,
+            core_address,
+        } => {
+            let core_instance = CoreInstance::new(core_address, provider.clone());
+            stake::process_stake_update_request(
+                vault_address,
+                dss_address,
+                stake_update_type,
+                core_instance,
+            )
+            .await?
+        }
+        OperatorCommand::FinalizeStakeUpdate {
+            vault_address,
+            dss_address,
+            stake_update_type,
+            nonce,
+            start_timestamp,
+            core_address,
+        } => {
+            let core_instance = CoreInstance::new(core_address, provider);
+            stake::process_finalize_stake_update_request(
+                vault_address,
+                dss_address,
+                stake_update_type,
+                nonce,
+                start_timestamp,
+                operator_address,
+                core_instance,
+            )
+            .await?
         }
     }
 

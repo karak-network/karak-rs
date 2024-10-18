@@ -2,8 +2,12 @@ pub mod processor;
 
 use std::path::PathBuf;
 
-use alloy::primitives::{Address, Bytes};
+use alloy::{
+    primitives::{aliases::U48, Address, Bytes},
+    signers::local::PrivateKeySigner,
+};
 use clap::{Args, Subcommand};
+use processor::stake::StakeUpdateType;
 use url::Url;
 
 use crate::shared::{Encoding, Keystore};
@@ -33,6 +37,44 @@ pub enum OperatorCommand {
 
         #[arg(long)]
         kns: String,
+    },
+
+    /// Request a stake update
+    RequestStakeUpdate {
+        #[arg(long)]
+        vault_address: Address,
+
+        #[arg(long)]
+        dss_address: Address,
+
+        #[arg(long)]
+        stake_update_type: StakeUpdateType,
+
+        /// Core address
+        #[arg(short, long)]
+        core_address: Address,
+    },
+
+    /// Finalize a stake update
+    FinalizeStakeUpdate {
+        #[arg(long)]
+        vault_address: Address,
+
+        #[arg(long)]
+        dss_address: Address,
+
+        #[arg(long)]
+        stake_update_type: StakeUpdateType,
+
+        #[arg(long)]
+        nonce: U48,
+
+        #[arg(long)]
+        start_timestamp: U48,
+
+        /// Core address
+        #[arg(short, long)]
+        core_address: Address,
     },
 
     /// Perform BLS registration to DSS
@@ -73,6 +115,9 @@ pub struct OperatorArgs {
 
     #[arg(long, global(true))]
     secp256k1_passphrase: Option<String>,
+
+    #[arg(long, global(true), required(false), hide(true))]
+    secp256k1_keypair: PrivateKeySigner,
 
     /// RPC endpoint
     #[arg(short, long, global(true), default_value = "http://localhost:8545")]
