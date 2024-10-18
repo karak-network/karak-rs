@@ -101,23 +101,22 @@ pub async fn process(args: OperatorArgs) -> eyre::Result<()> {
             .await?
         }
         OperatorCommand::CreateVault {
-            asset_address,
-            extra_data,
+            assets,
             vault_impl,
             core_address,
         } => {
             let core_instance = CoreInstance::new(core_address, provider.clone());
-            let erc20_instance = ERC20Mintable::new(asset_address, provider.clone());
 
             vault::process_vault_creation(
-                asset_address,
-                extra_data,
+                assets,
                 operator_address,
                 vault_impl,
                 core_instance,
-                erc20_instance,
+                provider.clone(),
             )
             .await?
+
+            // TODO: Direct to registy registration link
         }
         OperatorCommand::RegisterToRegistry {
             registry_address,

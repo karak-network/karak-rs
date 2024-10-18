@@ -16,6 +16,7 @@ pub const CLAP_STYLING: Styles = Styles::styled()
 #[derive(Parser)]
 #[command(version, about = "Karak CLI", long_about = None, styles = CLAP_STYLING)]
 #[command(propagate_version = true)]
+#[allow(clippy::large_enum_variant)]
 pub enum Root {
     /// Keypair management
     #[command(subcommand)]

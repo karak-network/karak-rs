@@ -2,7 +2,7 @@ pub mod processor;
 
 use std::path::PathBuf;
 
-use alloy::primitives::{aliases::U48, Address, Bytes, U256};
+use alloy::primitives::{aliases::U48, Address, U256};
 use clap::{Args, Subcommand};
 use processor::stake::StakeUpdateType;
 use url::Url;
@@ -13,11 +13,8 @@ use crate::shared::{Encoding, Keystore};
 pub enum OperatorCommand {
     /// Perform vault creation
     CreateVault {
-        #[arg(long)]
-        asset_address: Address,
-
-        #[arg(long)]
-        extra_data: Option<Bytes>,
+        #[arg(long, required(false), value_delimiter(','))]
+        assets: Option<Vec<Address>>,
 
         #[arg(long)]
         vault_impl: Address,
