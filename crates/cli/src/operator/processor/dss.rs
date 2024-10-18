@@ -1,13 +1,10 @@
 use std::{path::PathBuf, str::FromStr};
 
 use crate::shared::{Encoding, Keystore};
+use alloy::primitives::{keccak256, Address};
+use alloy::providers::Provider;
 use alloy::signers::k256::ecdsa::signature::SignerMut;
-use alloy::{
-    network::EthereumWallet,
-    primitives::{keccak256, Address},
-    providers::ProviderBuilder,
-    signers::local::LocalSigner,
-};
+use alloy::transports::Transport;
 use color_eyre::eyre;
 use karak_contracts::Core::CoreInstance;
 use karak_kms::{
@@ -20,23 +17,21 @@ use karak_kms::{
     },
     keystore::{self, traits::EncryptedKeystore},
 };
-use url::Url;
 
-pub struct RegistrationArgs<'a> {
+pub struct DSSRegistrationArgs<'a, T: Transport + Clone, P: Provider<T>> {
     pub bn254_keypair_location: &'a str,
     pub bn254_keystore: &'a Keystore,
     pub bn254_passphrase: Option<&'a str>,
-    pub secp256k1_keypair_location: &'a str,
-    pub secp256k1_keystore: &'a Keystore,
-    pub secp256k1_passphrase: Option<&'a str>,
-    pub rpc_url: Url,
-    pub core_address: Address,
+    pub core_instance: CoreInstance<T, P>,
     pub dss_address: Address,
     pub message: &'a str,
     pub message_encoding: &'a Encoding,
+    pub operator_address: Address,
 }
 
-pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()> {
+pub async fn process_registration<T: Transport + Clone, P: Provider<T>>(
+    args: DSSRegistrationArgs<'_, T, P>,
+) -> eyre::Result<()> {
     let bn254_passphrase = match args.bn254_passphrase {
         Some(passphrase) => passphrase,
         None => &rpassword::prompt_password("Enter BN254 keypair passphrase: ")?,
@@ -51,25 +46,6 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
         Keystore::Aws => todo!(),
     };
 
-    let secp256k1_passphrase = match args.secp256k1_passphrase {
-        Some(passphrase) => passphrase,
-        None => &rpassword::prompt_password("Enter SECP256k1 keypair passphrase: ")?,
-    };
-
-    let secp256k1_keypair = match args.secp256k1_keystore {
-        Keystore::Local => {
-            LocalSigner::decrypt_keystore(args.secp256k1_keypair_location, secp256k1_passphrase)?
-        }
-        Keystore::Aws => todo!(),
-    };
-
-    let wallet = EthereumWallet::from(secp256k1_keypair.clone());
-    let provider = ProviderBuilder::new()
-        .with_recommended_fillers()
-        .wallet(wallet)
-        .on_http(args.rpc_url);
-    let core = CoreInstance::new(args.core_address, provider.clone());
-
     // TODO: Get this value from the DSS contract not from the args
     let msg_bytes = args.message_encoding.decode(args.message)?;
     let msg_hash = keccak256(msg_bytes);
@@ -79,8 +55,15 @@ pub async fn process_registration(args: RegistrationArgs<'_>) -> eyre::Result<()
         g2_pubkey: bn254_keypair.public_key().g2,
         signature,
     };
-    core.register_operator_to_dss_with_bls(args.dss_address, &registration)
+    let tx_hash = args
+        .core_instance
+        .register_operator_to_dss_with_bls(args.dss_address, &registration)
         .await?;
+
+    println!(
+        "Operator {} registered to DSS {} in tx {}",
+        args.operator_address, args.dss_address, tx_hash
+    );
 
     Ok(())
 }

@@ -8,14 +8,17 @@ repository = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-alloy = { workspace = true, features = ["full", "signer-keystore"] }
+alloy = { workspace = true, features = ["full", "signer-aws", "signer-keystore"] }
 aws-config = { version = "1.5.6", features = ["behavior-version-latest"] }
+aws-sdk-kms = "1.47.0"
 aws-sdk-secretsmanager = "1.46.0"
 base64 = "0.22.1"
 bs58 = "0.5.1"
-clap = { version = "4.5.17", features = ["derive"] }
+clap = { version = "4.5.17", features = ["color", "derive"] }
 color-eyre = "0.6.3"
+dialoguer = "0.11.0"
 dirs-next = "2.0.0"
+eyre = "0.6.12"
 hex = "0.4.3"
 karak-contracts = { workspace = true }
 karak-kms = { workspace = true }
@@ -32,3 +35,6 @@ url = "2.5.2"
 [[bin]]
 name = "karak"
 path = "src/main.rs"
+
+[features]
+testnet = []
