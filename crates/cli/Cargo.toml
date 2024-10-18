@@ -13,7 +13,7 @@ aws-config = { version = "1.5.6", features = ["behavior-version-latest"] }
 aws-sdk-secretsmanager = "1.46.0"
 base64 = "0.22.1"
 bs58 = "0.5.1"
-clap = { version = "4.5.17", features = ["derive"] }
+clap = { version = "4.5.17", features = ["color", "derive"] }
 color-eyre = "0.6.3"
 dirs-next = "2.0.0"
 eyre = "0.6.12"

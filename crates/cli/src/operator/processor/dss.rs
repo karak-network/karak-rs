@@ -26,6 +26,7 @@ pub struct DSSRegistrationArgs<'a, T: Transport + Clone, P: Provider<T>> {
     pub dss_address: Address,
     pub message: &'a str,
     pub message_encoding: &'a Encoding,
+    pub operator_address: Address,
 }
 
 pub async fn process_registration<T: Transport + Clone, P: Provider<T>>(
@@ -59,7 +60,10 @@ pub async fn process_registration<T: Transport + Clone, P: Provider<T>>(
         .register_operator_to_dss_with_bls(args.dss_address, &registration)
         .await?;
 
-    println!("Operator registered to DSS: {}", tx_hash);
+    println!(
+        "Operator {} registered to DSS {} in tx {}",
+        args.operator_address, args.dss_address, tx_hash
+    );
 
     Ok(())
 }

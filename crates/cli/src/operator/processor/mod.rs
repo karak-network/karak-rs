@@ -64,6 +64,7 @@ pub async fn process(args: OperatorArgs) -> eyre::Result<()> {
                 dss_address,
                 message: &message,
                 message_encoding: &message_encoding,
+                operator_address,
             })
             .await?
         }

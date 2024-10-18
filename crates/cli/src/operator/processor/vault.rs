@@ -41,15 +41,16 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T>>(
         .get_receipt()
         .await?;
 
-    println!("Vault deployed: {}", receipt.transaction_hash);
-
     let vault_address = receipt.inner.logs()[3]
         .log_decode::<Core::DeployedVault>()?
         .inner
         .data
         .vault;
 
-    println!("Vault deployed at: {vault_address}");
+    println!(
+        "Vault deployed at {} in tx {}",
+        vault_address, receipt.transaction_hash
+    );
 
     Ok(())
 }
@@ -61,6 +62,7 @@ pub async fn deposit_to_vault<T: Transport + Clone, P: Provider<T>>(
     vault_instance: VaultInstance<T, P>,
     erc20_instance: ERC20MintableInstance<T, P>,
 ) -> Result<()> {
+    let symbol = erc20_instance.symbol().call().await?._0;
     let receipt = erc20_instance
         .approve(vault_address, amount)
         .send()
@@ -68,7 +70,10 @@ pub async fn deposit_to_vault<T: Transport + Clone, P: Provider<T>>(
         .get_receipt()
         .await?;
 
-    println!("Approved: {}", receipt.transaction_hash);
+    println!(
+        "Approved spending {} {} in tx {}",
+        amount, symbol, receipt.transaction_hash
+    );
 
     let receipt = vault_instance
         .deposit_0(amount, operator_address)
@@ -77,7 +82,10 @@ pub async fn deposit_to_vault<T: Transport + Clone, P: Provider<T>>(
         .get_receipt()
         .await?;
 
-    println!("Deposited to vault: {}", receipt.transaction_hash);
+    println!(
+        "Deposited {} {} to vault {} in tx {}",
+        amount, symbol, vault_address, receipt.transaction_hash
+    );
 
     Ok(())
 }

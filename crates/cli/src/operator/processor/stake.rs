@@ -44,7 +44,7 @@ pub async fn process_stake_update_request<T: Transport + Clone, P: Provider<T>>(
         .get_receipt()
         .await?;
 
-    println!("Requested stake update: {}", receipt.transaction_hash);
+    println!("Requested stake update in tx {}", receipt.transaction_hash);
 
     let queued_stake_update = receipt.inner.logs()[1]
         .log_decode::<Core::RequestedStakeUpdate>()?
@@ -86,7 +86,7 @@ pub async fn process_finalize_stake_update_request<T: Transport + Clone, P: Prov
         .get_receipt()
         .await?;
 
-    println!("Finalized stake update: {}", receipt.transaction_hash);
+    println!("Finalized stake update in tx {}", receipt.transaction_hash);
 
     Ok(())
 }

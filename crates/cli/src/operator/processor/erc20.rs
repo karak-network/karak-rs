@@ -11,6 +11,7 @@ pub async fn mint<T: Transport + Clone, P: Provider<T>>(
     operator_address: Address,
     erc20_instance: ERC20MintableInstance<T, P>,
 ) -> Result<()> {
+    let symbol = erc20_instance.symbol().call().await?._0;
     let receipt = erc20_instance
         .mint(operator_address, amount)
         .send()
@@ -18,7 +19,10 @@ pub async fn mint<T: Transport + Clone, P: Provider<T>>(
         .get_receipt()
         .await?;
 
-    println!("Minted: {}", receipt.transaction_hash);
+    println!(
+        "Minted {} {} to {} in tx {}",
+        amount, symbol, operator_address, receipt.transaction_hash
+    );
 
     Ok(())
 }
