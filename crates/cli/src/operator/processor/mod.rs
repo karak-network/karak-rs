@@ -5,7 +5,13 @@ pub mod registry;
 pub mod stake;
 pub mod vault;
 
-use alloy::{network::EthereumWallet, providers::ProviderBuilder, signers::local::LocalSigner};
+use alloy::{
+    network::EthereumWallet,
+    providers::ProviderBuilder,
+    signers::{aws::AwsSigner, local::LocalSigner, Signer},
+};
+use aws_config::{BehaviorVersion, Region};
+use aws_sdk_secretsmanager::config::{Credentials, SharedCredentialsProvider};
 use color_eyre::eyre::{self, eyre};
 use karak_contracts::{
     erc20::mintable::ERC20Mintable, registry::RestakingRegistry, vault::Vault::VaultInstance,
@@ -35,7 +41,33 @@ pub async fn process(args: OperatorArgs) -> eyre::Result<()> {
             (operator_wallet, operator_address)
         }
         Keystore::Aws => {
-            todo!();
+            let region = args
+                .aws_region
+                .ok_or(eyre!("AWS region is required for AWS keystore"))?;
+            let access_key_id = args
+                .aws_access_key_id
+                .ok_or(eyre!("AWS access key ID is required for AWS keystore"))?;
+            let secret_access_key = args
+                .aws_secret_access_key
+                .ok_or(eyre!("AWS secret access key is required for AWS keystore"))?;
+            let operator_key_id = args
+                .aws_operator_key_id
+                .ok_or(eyre!("AWS operator key ID is required for AWS keystore"))?;
+
+            let credentials = Credentials::new(access_key_id, secret_access_key, None, None, "");
+            let aws_config = aws_config::defaults(BehaviorVersion::latest())
+                .region(Region::new(region))
+                .credentials_provider(SharedCredentialsProvider::new(credentials))
+                .load()
+                .await;
+
+            let client = aws_sdk_kms::Client::new(&aws_config);
+            let signer = AwsSigner::new(client, operator_key_id, None).await?;
+
+            let operator_address = signer.address();
+            let operator_wallet = EthereumWallet::from(signer);
+
+            (operator_wallet, operator_address)
         }
     };
 

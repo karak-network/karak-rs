@@ -132,6 +132,18 @@ pub struct OperatorArgs {
     #[arg(long, global(true))]
     secp256k1_passphrase: Option<String>,
 
+    #[arg(long, required_if_eq("secp256k1_keystore_type", "aws"), global(true))]
+    aws_region: Option<String>,
+
+    #[arg(long, required_if_eq("secp256k1_keystore_type", "aws"), global(true))]
+    aws_access_key_id: Option<String>,
+
+    #[arg(long, required_if_eq("secp256k1_keystore_type", "aws"), global(true))]
+    aws_secret_access_key: Option<String>,
+
+    #[arg(long, required_if_eq("secp256k1_keystore_type", "aws"), global(true))]
+    aws_operator_key_id: Option<String>,
+
     /// RPC endpoint
     #[arg(short, long, global(true), default_value = "http://localhost:8545")]
     rpc_url: Url,
