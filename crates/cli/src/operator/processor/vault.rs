@@ -1,5 +1,5 @@
 use alloy::{
-    primitives::{Address, Bytes},
+    primitives::{Address, Bytes, U256},
     providers::Provider,
     transports::Transport,
 };
@@ -7,6 +7,7 @@ use eyre::Result;
 use karak_contracts::{
     core::contract::VaultLib,
     erc20::mintable::ERC20Mintable::ERC20MintableInstance,
+    vault::Vault::VaultInstance,
     Core::{self, CoreInstance},
 };
 
@@ -49,6 +50,34 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T>>(
         .vault;
 
     println!("Vault deployed at: {vault_address}");
+
+    Ok(())
+}
+
+pub async fn deposit_to_vault<T: Transport + Clone, P: Provider<T>>(
+    amount: U256,
+    operator_address: Address,
+    vault_address: Address,
+    vault_instance: VaultInstance<T, P>,
+    erc20_instance: ERC20MintableInstance<T, P>,
+) -> Result<()> {
+    let receipt = erc20_instance
+        .approve(vault_address, amount)
+        .send()
+        .await?
+        .get_receipt()
+        .await?;
+
+    println!("Approved: {}", receipt.transaction_hash);
+
+    let receipt = vault_instance
+        .deposit_0(amount, operator_address)
+        .send()
+        .await?
+        .get_receipt()
+        .await?;
+
+    println!("Deposited to vault: {}", receipt.transaction_hash);
 
     Ok(())
 }

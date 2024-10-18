@@ -33,3 +33,6 @@ url = "2.5.2"
 [[bin]]
 name = "karak"
 path = "src/main.rs"
+
+[features]
+testnet = []

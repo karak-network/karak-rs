@@ -1,4 +1,6 @@
 pub mod dss;
+#[cfg(feature = "testnet")]
+pub mod erc20;
 pub mod registry;
 pub mod stake;
 pub mod vault;
@@ -6,7 +8,8 @@ pub mod vault;
 use alloy::{network::EthereumWallet, providers::ProviderBuilder, signers::local::LocalSigner};
 use color_eyre::eyre::{self, eyre};
 use karak_contracts::{
-    erc20::mintable::ERC20Mintable, registry::RestakingRegistry, Core::CoreInstance,
+    erc20::mintable::ERC20Mintable, registry::RestakingRegistry, vault::Vault::VaultInstance,
+    Core::CoreInstance,
 };
 
 use crate::shared::Keystore;
@@ -125,6 +128,31 @@ pub async fn process(args: OperatorArgs) -> eyre::Result<()> {
                 core_instance,
             )
             .await?
+        }
+        OperatorCommand::DepositToVault {
+            vault_address,
+            amount,
+        } => {
+            let vault_instance = VaultInstance::new(vault_address, provider.clone());
+            let asset_address = vault_instance.asset().call().await?._0;
+            let erc20_instance = ERC20Mintable::new(asset_address, provider.clone());
+
+            vault::deposit_to_vault(
+                amount,
+                operator_address,
+                vault_address,
+                vault_instance,
+                erc20_instance,
+            )
+            .await?
+        }
+        #[cfg(feature = "testnet")]
+        OperatorCommand::MintERC20 {
+            asset_address,
+            amount,
+        } => {
+            let erc20_instance = ERC20Mintable::new(asset_address, provider);
+            erc20::mint(amount, operator_address, erc20_instance).await?
         }
     }
 

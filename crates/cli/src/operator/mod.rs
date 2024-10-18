@@ -2,10 +2,7 @@ pub mod processor;
 
 use std::path::PathBuf;
 
-use alloy::{
-    primitives::{aliases::U48, Address, Bytes},
-    signers::local::PrivateKeySigner,
-};
+use alloy::primitives::{aliases::U48, Address, Bytes, U256};
 use clap::{Args, Subcommand};
 use processor::stake::StakeUpdateType;
 use url::Url;
@@ -100,6 +97,25 @@ pub enum OperatorCommand {
         #[arg(short, long)]
         core_address: Address,
     },
+
+    /// Deposit to vault
+    DepositToVault {
+        #[arg(long)]
+        vault_address: Address,
+
+        #[arg(long)]
+        amount: U256,
+    },
+
+    #[cfg(feature = "testnet")]
+    /// Mint ERC20 tokens
+    MintERC20 {
+        #[arg(long)]
+        asset_address: Address,
+
+        #[arg(long)]
+        amount: U256,
+    },
 }
 
 #[derive(Debug, Args)]
@@ -115,9 +131,6 @@ pub struct OperatorArgs {
 
     #[arg(long, global(true))]
     secp256k1_passphrase: Option<String>,
-
-    #[arg(long, global(true), required(false), hide(true))]
-    secp256k1_keypair: PrivateKeySigner,
 
     /// RPC endpoint
     #[arg(short, long, global(true), default_value = "http://localhost:8545")]
