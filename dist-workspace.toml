@@ -10,7 +10,11 @@ ci = "github"
 # The installers to generate for each app
 installers = ["shell"]
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
+targets = [
+    "aarch64-apple-darwin",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-unknown-linux-gnu",
+]
 # Path that installers should place binaries in
 install-path = "~/.karak/bin"
 # Whether to install an updater program
@@ -19,8 +23,6 @@ install-updater = false
 hosting = "github"
 # Whether to enable GitHub Attestations
 github-attestations = true
-# Which actions to run on pull requests
-pr-run-mode = "upload"
 
 [dist.github-custom-runners]
 aarch64-apple-darwin = "macos-latest"
