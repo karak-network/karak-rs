@@ -8,7 +8,7 @@
 ## Add Karak cli
 
 ``` bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/karak-network/karak-rs/releases/download/karak-cli-v0.2.0/karak-cli-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/karak-network/karak-rs/releases/download/karak-cli-v0.2.1/karak-cli-installer.sh | sh
 ```
 
 ## Steps to Register as Operator on Karak
