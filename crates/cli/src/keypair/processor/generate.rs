@@ -87,22 +87,20 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
                 Keystore::Local => {
                     let keypath = dirs_next::home_dir()
                         .ok_or(eyre!("Home directory not found"))?
-                        .join(".config")
-                        .join("karak");
-                    let filename = "secp256k1.json";
+                        .join(".karak");
+                    let filename = format!("{}.json", private_key.address());
 
                     fs::create_dir_all(&keypath)?;
 
-                    let resolved_path = keypath.join(filename).canonicalize()?;
-
                     LocalSigner::encrypt_keystore(
-                        keypath,
+                        keypath.clone(),
                         &mut rng,
                         private_key.to_bytes(),
                         passphrase,
-                        Some(filename),
+                        Some(&filename),
                     )?;
 
+                    let resolved_path = keypath.join(filename).canonicalize()?;
                     let resolved_path_str =
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
