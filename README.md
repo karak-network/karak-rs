@@ -18,7 +18,7 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/karak-network/karak-rs/
 Run the following command to create a vault for your operator:
 
 ```bash
-karak create-vault \
+karak operator create-vault \
   --assets 0xaf88d065e77c8cC2239327C5EDb3A432268e5831,0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe,0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9 \
   --vault-impl 0x0000000000000000000000000000000000000000 \
   --core-address {CORE_ADDRESS} \
