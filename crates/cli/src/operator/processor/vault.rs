@@ -69,7 +69,7 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
 
     let mut vault_configs = Vec::new();
     for erc20_instance in erc20_instances {
-        let asset = erc20_instance.address();
+        let asset = *erc20_instance.address();
         let asset_symbol = erc20_instance.symbol().call().await?._0;
         let asset_name = erc20_instance.name().call().await?._0;
         println!("Creating vault for asset: {asset}");
@@ -93,7 +93,7 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
             .interact()?;
 
         let vault_config = VaultLib::Config {
-            asset: *asset,
+            asset,
             decimals,
             name,
             symbol,
