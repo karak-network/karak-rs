@@ -16,8 +16,8 @@ pub enum OperatorCommand {
         #[arg(long, required(false), value_delimiter(','))]
         assets: Option<Vec<Address>>,
 
-        #[arg(long)]
-        vault_impl: Address,
+        #[arg(long, required(false))]
+        vault_impl: Option<Address>,
 
         /// Core address
         #[arg(short, long)]
