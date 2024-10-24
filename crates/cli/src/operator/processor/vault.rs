@@ -53,7 +53,7 @@ async fn get_allowlisted_assets() -> Result<Vec<Address>> {
 pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone>(
     assets: Option<Vec<Address>>,
     operator_address: Address,
-    vault_impl: Address,
+    vault_impl: Option<Address>,
     core_instance: CoreInstance<T, P>,
     provider: P,
 ) -> Result<()> {
@@ -61,6 +61,7 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
         Some(assets) => assets.clone(),
         None => get_allowlisted_assets().await?,
     };
+    let vault_impl = vault_impl.unwrap_or_default();
     let erc20_instances = assets
         .iter()
         .map(|asset| ERC20MintableInstance::new(*asset, provider.clone()))
@@ -68,15 +69,24 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
 
     let mut vault_configs = Vec::new();
     for erc20_instance in erc20_instances {
-        let decimals = erc20_instance.decimals().call().await?._0;
-        let name = erc20_instance.name().call().await?._0;
-        let symbol = erc20_instance.symbol().call().await?._0;
         let asset = erc20_instance.address();
+        let asset_symbol = erc20_instance.symbol().call().await?._0;
+        let asset_name = erc20_instance.name().call().await?._0;
+        println!("Creating vault for asset: {asset}");
+        let decimals = erc20_instance.decimals().call().await?._0;
+
+        let name = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Please enter vault name:")
+            .default(asset_name)
+            .interact()?;
+
+        let symbol = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Please enter vault symbol:")
+            .default(asset_symbol)
+            .interact()?;
 
         let extra_data = Input::<Bytes>::with_theme(&ColorfulTheme::default())
-            .with_prompt(format!(
-                "Asset: {asset}, Name: {name}, Symbol: {symbol}, Decimals: {decimals}\nPlease enter any extra data:",
-            ))
+            .with_prompt("Please enter any extra data:")
             .with_initial_text("0x")
             .default(Bytes::default())
             .allow_empty(true)
@@ -95,12 +105,7 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     }
 
     println!("Deploying the following vaults:");
-    for vault_config in &vault_configs {
-        println!(
-            "Asset: {}, Name: {}, Symbol: {}, extraData: {}",
-            vault_config.asset, vault_config.name, vault_config.symbol, vault_config.extraData
-        );
-    }
+    println!("{}", serde_json::to_string_pretty(&vault_configs)?);
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Do you want to proceed with the deployment?")
@@ -117,16 +122,13 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
         .get_receipt()
         .await?;
 
-    let vault_address = receipt.inner.logs()[3]
-        .log_decode::<Core::DeployedVault>()?
-        .inner
-        .data
-        .vault;
-
-    println!(
-        "Vault deployed at {} in tx {}",
-        vault_address, receipt.transaction_hash
-    );
+    println!("Vault(s) deployed in tx {}", receipt.transaction_hash);
+    for logs in receipt.inner.logs().chunks(4) {
+        let log = logs[3].log_decode::<Core::DeployedVault>()?.inner.data;
+        let vault = log.vault;
+        let asset = log.asset;
+        println!("Deployed vault {vault} for asset {asset}");
+    }
 
     Ok(())
 }
