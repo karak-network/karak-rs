@@ -94,11 +94,18 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
 
                 // Set a custom gossipsub configuration
                 let gossipsub_config = gossipsub::ConfigBuilder::default()
-                    .heartbeat_interval(Duration::from_secs(10)) // This is set to aid debugging by not cluttering the log space
-                    .validation_mode(gossipsub::ValidationMode::Strict) // This sets the kind of message validation. The default is Strict (enforce message signing)
-                    .message_id_fn(message_id_fn) // content-address messages. No two messages of the same content will be propagated.
+                    .heartbeat_interval(Duration::from_secs(1)) // More frequent heartbeats
+                    .validation_mode(gossipsub::ValidationMode::Strict)
+                    .message_id_fn(message_id_fn)
+                    .mesh_n_low(2) // Minimum number of peers to maintain in mesh
+                    .mesh_n(6) // Target number of peers to keep in mesh
+                    .mesh_n_high(12) // Maximum number of peers in mesh
+                    .mesh_outbound_min(2) // Minimum outbound peers in mesh
+                    .flood_publish(true) // Ensure messages are flooded to all peers
+                    .history_length(10) // Keep track of more messages
+                    .history_gossip(3) // Gossip about more messages
                     .build()
-                    .map_err(|_| KarakP2PError::BuilderError)?; // Temporary hack because `build` does not return a proper `std::error::Error`.
+                    .map_err(|_| KarakP2PError::BuilderError)?;
 
                 // build a gossipsub network behaviour
                 let gossipsub = gossipsub::Behaviour::new(
