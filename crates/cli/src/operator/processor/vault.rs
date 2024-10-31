@@ -15,8 +15,10 @@ use serde::Deserialize;
 use url::Url;
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AllowlistedAsset {
     pub asset: Address,
+    pub chain_id: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -29,13 +31,14 @@ pub struct AllowlistedAssets {
     pub result: AllowlistedAssetsData,
 }
 
-async fn get_allowlisted_assets() -> Result<Vec<Address>> {
+async fn get_allowlisted_assets(chain_id: u64) -> Result<Vec<Address>> {
     let url = Url::parse("https://v2-backend.karak.network/trpc/getAllowlistedAssets")?;
     let response = reqwest::get(url).await?.json::<AllowlistedAssets>().await?;
     let allowlisted_assets = response
         .result
         .data
         .iter()
+        .filter(|asset| asset.chain_id == chain_id)
         .map(|asset| asset.asset)
         .collect::<Vec<_>>();
 
@@ -57,9 +60,10 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     core_instance: CoreInstance<T, P>,
     provider: P,
 ) -> Result<()> {
+    let chain_id = provider.get_chain_id().await?;
     let assets = match &assets {
         Some(assets) => assets.clone(),
-        None => get_allowlisted_assets().await?,
+        None => get_allowlisted_assets(chain_id).await?,
     };
     let vault_impl = vault_impl.unwrap_or_default();
     let erc20_instances = assets
