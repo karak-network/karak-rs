@@ -148,7 +148,7 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
         Ok(KarakP2P {
             swarm,
             termination_receiver: termination_receiver,
-            message_receiver: message_receiver,
+            message_receiver,
         })
     }
 
