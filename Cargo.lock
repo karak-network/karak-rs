@@ -3103,7 +3103,7 @@ dependencies = [
 
 [[package]]
 name = "karak-contracts"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "alloy",
  "eyre",
@@ -3115,7 +3115,7 @@ dependencies = [
 
 [[package]]
 name = "karak-kms"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "aes",
  "alloy",
@@ -3149,7 +3149,7 @@ dependencies = [
 
 [[package]]
 name = "karak-p2p"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "async-trait",
  "futures",
@@ -3162,7 +3162,7 @@ dependencies = [
 
 [[package]]
 name = "karak-rs"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "karak-contracts",
  "karak-kms",
