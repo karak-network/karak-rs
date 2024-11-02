@@ -1,6 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 
-use crate::shared::{Encoding, Keystore};
+use crate::config::models::Keystore;
+use crate::shared::Encoding;
 use alloy::primitives::{keccak256, Address};
 use alloy::providers::Provider;
 use alloy::signers::k256::ecdsa::signature::SignerMut;
@@ -37,13 +38,13 @@ pub async fn process_registration<T: Transport + Clone, P: Provider<T>>(
         None => &rpassword::prompt_password("Enter BN254 keypair passphrase: ")?,
     };
     let mut bn254_keypair: bn254::Keypair = match args.bn254_keystore {
-        Keystore::Local => {
+        Keystore::Local { path: _ } => {
             let local_keystore = keystore::local::LocalEncryptedKeystore::new(PathBuf::from_str(
                 args.bn254_keypair_location,
             )?);
             local_keystore.retrieve(bn254_passphrase)?
         }
-        Keystore::Aws => todo!(),
+        Keystore::Aws { secret: _ } => todo!(),
     };
 
     // TODO: Get this value from the DSS contract not from the args

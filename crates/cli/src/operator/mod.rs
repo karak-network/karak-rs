@@ -7,7 +7,8 @@ use clap::{Args, Subcommand};
 use processor::stake::StakeUpdateType;
 use url::Url;
 
-use crate::shared::{Encoding, Keystore};
+use crate::config::models::Keystore;
+use crate::shared::Encoding;
 
 #[derive(Debug, Subcommand)]
 pub enum OperatorCommand {

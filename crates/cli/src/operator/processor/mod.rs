@@ -18,14 +18,14 @@ use karak_contracts::{
     Core::CoreInstance,
 };
 
+use crate::config::models::Keystore;
 use crate::config::models::Profile;
-use crate::shared::Keystore;
 
 use super::{OperatorArgs, OperatorCommand};
 
 pub async fn process(args: OperatorArgs, _: Profile) -> eyre::Result<()> {
     let (operator_wallet, operator_address) = match args.secp256k1_keystore_type {
-        Keystore::Local => {
+        Keystore::Local { path: _ } => {
             let Some(secp256k1_keystore_path) = args.secp256k1_keystore_path else {
                 return Err(eyre!("SECP256k1 keypair location is required"));
             };
@@ -41,7 +41,7 @@ pub async fn process(args: OperatorArgs, _: Profile) -> eyre::Result<()> {
             let operator_wallet = EthereumWallet::from(secp_256k1_signer);
             (operator_wallet, operator_address)
         }
-        Keystore::Aws => {
+        Keystore::Aws { secret: _ } => {
             let region = args
                 .aws_region
                 .ok_or(eyre!("AWS region is required for AWS keystore"))?;
