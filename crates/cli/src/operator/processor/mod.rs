@@ -18,11 +18,12 @@ use karak_contracts::{
     Core::CoreInstance,
 };
 
+use crate::config::models::Profile;
 use crate::shared::Keystore;
 
 use super::{OperatorArgs, OperatorCommand};
 
-pub async fn process(args: OperatorArgs) -> eyre::Result<()> {
+pub async fn process(args: OperatorArgs, _: Profile) -> eyre::Result<()> {
     let (operator_wallet, operator_address) = match args.secp256k1_keystore_type {
         Keystore::Local => {
             let Some(secp256k1_keystore_path) = args.secp256k1_keystore_path else {

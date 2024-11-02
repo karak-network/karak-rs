@@ -1,8 +1,11 @@
 use base64::Engine;
 use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumString, FromRepr, VariantNames};
 use thiserror::Error;
+use url::Url as Url_;
 
-#[derive(Clone, ValueEnum, Debug)]
+#[derive(Clone, ValueEnum, Debug, FromRepr, EnumString, Display, VariantNames)]
 pub enum Curve {
     /// BN254 (also known as alt_bn128) is the curve used in Ethereum for BLS aggregation
     Bn254,
@@ -56,5 +59,28 @@ impl Encoding {
         };
 
         Ok(decoded)
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Url(Url_);
+
+impl Default for Url {
+    fn default() -> Self {
+        Url(Url_::parse("http://localhost:8545").unwrap())
+    }
+}
+
+impl std::str::FromStr for Url {
+    type Err = url::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Url(Url_::parse(s)?))
+    }
+}
+
+impl std::fmt::Display for Url {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

@@ -1,23 +1,24 @@
 pub mod get;
-pub mod init;
-pub mod set;
+pub mod prompt;
+pub mod update;
 
 use color_eyre::eyre;
+
+use super::{get_profile, models::Profile, read_config, Config};
 use get::process_get;
-use init::process_init;
-use set::process_set;
+use update::process_update;
 
-use super::Config;
-
-pub async fn process(command: Config) -> eyre::Result<()> {
+pub async fn process(command: Config, profile: String, config_path: String) -> eyre::Result<()> {
     match command {
-        Config::Init { path, overwrite } => process_init(path, overwrite),
-        Config::Get => process_get(),
-        Config::Set {
-            chain_id,
-            rpc_url,
-            local_keystore,
-            aws_keystore,
-        } => process_set(chain_id, rpc_url, local_keystore, aws_keystore),
+        Config::Update { reset } => process_update(profile, config_path, reset),
+        Config::Get => process_get(profile, config_path),
     }
+}
+
+pub fn pre_run(profile_name: String, config_path: String) -> eyre::Result<Profile> {
+    let config = read_config(std::path::Path::new(&config_path))?;
+    let profile = get_profile(&config, &profile_name)?;
+
+    // TODO: check latest version against current version and warn if outdated
+    Ok(profile)
 }

@@ -14,7 +14,7 @@ pub struct KeypairRoot {
     subcommand: BLS,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum BLS {
     /// Sign with keypair
     Sign {
@@ -41,7 +41,7 @@ pub enum BLS {
     Aggregate(Aggregate),
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Aggregate {
     /// Aggregate BLS signatures
     Signatures {
@@ -55,7 +55,7 @@ pub enum Aggregate {
     },
 }
 
-#[derive(Args)]
+#[derive(Args, Debug)]
 pub struct MessageArgs {
     #[arg(short, long)]
     pub message: String,

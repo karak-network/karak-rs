@@ -11,16 +11,26 @@ use karak_kms::{
     },
 };
 
-use crate::{
-    keypair::KeypairArgs,
-    shared::{Curve, Keystore},
-};
+use crate::config::models::Keystore;
+use crate::keypair::processor::prompt;
+use crate::{keypair::KeypairArgs, shared::Curve};
 
-pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::Result<()> {
+pub async fn process_generate(
+    keypair_args: Option<KeypairArgs>,
+    curve: Option<Curve>,
+    generation_folder: PathBuf,
+) -> eyre::Result<()> {
+    let keypair_args = prompt::prompt_keypair_args(keypair_args);
+    let curve = prompt::prompt_curve(curve);
+
     let KeypairArgs {
         keystore,
         passphrase,
     } = keypair_args;
+
+    // value will be set by prompt
+    let keystore = keystore.unwrap();
+    let passphrase = passphrase.unwrap();
 
     println!("Generating new keypair for curve: {:?}", curve);
     match curve {
@@ -28,31 +38,21 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
             let keypair = bn254::Keypair::generate();
             println!("Generated BN254 keypair with public key: {keypair}");
 
-            let passphrase = match passphrase {
-                Some(passphrase) => passphrase,
-                None => rpassword::prompt_password("Enter keypair passphrase: ")?,
-            };
-
             match keystore {
-                Keystore::Local => {
-                    let output = PathBuf::from(format!("{keypair}.bls"));
-
-                    if let Some(parent) = output.parent() {
-                        fs::create_dir_all(parent)?;
-                    }
-
-                    fs::File::create(&output)?;
+                Keystore::Local { path: _ } => {
+                    let output_path = generation_folder.join(format!("{keypair}.bls"));
+                    fs::File::create(&output_path)?;
 
                     let local_keystore =
-                        keystore::local::LocalEncryptedKeystore::new(output.clone());
+                        keystore::local::LocalEncryptedKeystore::new(output_path.clone());
                     local_keystore.store(&keypair, &passphrase)?;
 
-                    let resolved_path = output.canonicalize()?;
+                    let resolved_path = output_path.canonicalize()?;
                     let resolved_path_str =
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
                 }
-                Keystore::Aws => {
+                Keystore::Aws { secret: _ } => {
                     let config = aws_config::load_from_env().await;
                     let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
 
@@ -78,34 +78,26 @@ pub async fn process_generate(keypair_args: KeypairArgs, curve: Curve) -> eyre::
                 "Generated SECP256k1 keypair with address: {}",
                 private_key.address()
             );
+
             let mut rng = rand::thread_rng();
-            let passphrase = match passphrase {
-                Some(passphrase) => passphrase,
-                None => rpassword::prompt_password("Enter keypair passphrase: ")?,
-            };
             match keystore {
-                Keystore::Local => {
-                    let keypath = dirs_next::home_dir()
-                        .ok_or(eyre!("Home directory not found"))?
-                        .join(".karak");
+                Keystore::Local { path: _ } => {
                     let filename = format!("{}.json", private_key.address());
 
-                    fs::create_dir_all(&keypath)?;
-
                     LocalSigner::encrypt_keystore(
-                        keypath.clone(),
+                        generation_folder.clone(),
                         &mut rng,
                         private_key.to_bytes(),
                         passphrase,
                         Some(&filename),
                     )?;
 
-                    let resolved_path = keypath.join(filename).canonicalize()?;
+                    let resolved_path = generation_folder.join(filename).canonicalize()?;
                     let resolved_path_str =
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
                 }
-                Keystore::Aws => {
+                Keystore::Aws { secret: _ } => {
                     todo!()
                 }
             }

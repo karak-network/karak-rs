@@ -14,8 +14,8 @@ use sha3::{Digest, Keccak256};
 
 use crate::{
     bls::MessageArgs,
+    config::models::Keystore,
     keypair::{KeypairArgs, KeypairLocationArgs},
-    shared::Keystore,
 };
 
 pub async fn process_sign(
@@ -52,12 +52,12 @@ pub async fn process_sign(
 
     let mut keypair: bn254::Keypair = {
         match keystore {
-            Keystore::Local => {
+            Keystore::Local { path: _ } => {
                 let local_keystore =
                     keystore::local::LocalEncryptedKeystore::new(PathBuf::from(keypair));
                 local_keystore.retrieve(&passphrase)?
             }
-            Keystore::Aws => {
+            Keystore::Aws { secret: _ } => {
                 let config = aws_config::load_from_env().await;
                 let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
                 let secret_name = format!("{keypair}.bls");

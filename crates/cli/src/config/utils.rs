@@ -1,31 +1,64 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    io::{BufReader, BufWriter},
+    path::{Path, PathBuf},
+};
 
+use color_eyre::owo_colors::OwoColorize;
 use thiserror::Error;
 
-use super::{env::get_config_path, models::Config};
+use super::models::{Config, Profile};
 
 #[derive(Debug, Error)]
 pub enum ConfigError {
-    #[error("Config path not found")]
-    ConfigPathNotFound,
     #[error("Config not found error at {0}")]
     ConfigNotFoundError(PathBuf),
     #[error("Config parse error: {0}")]
     ConfigParseError(#[from] serde_json::Error),
+    #[error("Config read error: {0}")]
+    ReadConfigError(String),
+    #[error("Config deserialize error: {0}")]
+    DeserializeError(String),
+    #[error("Profile not found: {0}")]
+    ProfileNotFound(String),
+    #[error("Config write error: {0}")]
+    WriteConfigError(String),
 }
 
-pub fn get_config() -> Result<Config, ConfigError> {
-    let path = get_config_path().map_err(|_| ConfigError::ConfigPathNotFound)?;
-    fs::metadata(&path).map_err(|_| ConfigError::ConfigNotFoundError(path.clone()))?;
+pub fn read_config(path: &Path) -> Result<Config, ConfigError> {
+    if !path.exists() {
+        return Err(ConfigError::ConfigNotFoundError(path.to_path_buf()));
+    }
 
-    let contents = fs::read_to_string(&path).map_err(|_| ConfigError::ConfigNotFoundError(path))?;
+    let file = fs::File::open(path).map_err(|e| ConfigError::ReadConfigError(e.to_string()))?;
 
-    Ok(serde_json::from_str(&contents)?)
+    let reader = BufReader::new(file);
+
+    let config = serde_yaml::from_reader(reader)
+        .map_err(|e| ConfigError::DeserializeError(e.to_string()))?;
+
+    Ok(config)
 }
 
-pub fn write_config(config: Config) -> color_eyre::eyre::Result<()> {
-    let config_path = get_config_path()?;
-    let config_str = serde_json::to_string_pretty(&config)?;
-    fs::write(config_path, config_str)?;
+pub fn write_config(config: Config, path: &Path) -> Result<(), ConfigError> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| ConfigError::WriteConfigError(e.to_string()))?;
+    }
+
+    let file = fs::File::create(path).map_err(|e| ConfigError::WriteConfigError(e.to_string()))?;
+    let writer = BufWriter::new(file);
+    serde_yaml::to_writer(writer, &config)
+        .map_err(|e| ConfigError::WriteConfigError(e.to_string()))?;
+
+    println!("{}", "Configuration saved successfully!".green());
     Ok(())
+}
+
+pub fn get_profile(config: &Config, profile: &str) -> Result<Profile, ConfigError> {
+    if let Some(profile) = config.profiles.get(profile) {
+        Ok(profile.clone())
+    } else {
+        Err(ConfigError::ProfileNotFound(profile.to_string()))
+    }
 }
