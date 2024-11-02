@@ -20,12 +20,6 @@ pub enum Scheme {
     Bls,
 }
 
-#[derive(Clone, ValueEnum, Debug)]
-pub enum Keystore {
-    Local,
-    Aws,
-}
-
 // TODO: Move the encoding enum to the SDK crate
 #[derive(Clone, ValueEnum, Debug)]
 pub enum Encoding {
