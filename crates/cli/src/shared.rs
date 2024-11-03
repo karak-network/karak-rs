@@ -1,9 +1,7 @@
 use base64::Engine;
 use clap::ValueEnum;
-use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, FromRepr, VariantNames};
 use thiserror::Error;
-use url::Url as Url_;
 
 #[derive(Clone, ValueEnum, Debug, FromRepr, EnumString, Display, VariantNames)]
 pub enum Curve {
@@ -21,7 +19,7 @@ pub enum Scheme {
 }
 
 // TODO: Move the encoding enum to the SDK crate
-#[derive(Clone, ValueEnum, Debug)]
+#[derive(Clone, ValueEnum, Debug, FromRepr, EnumString, Display, VariantNames)]
 pub enum Encoding {
     Utf8,
     Hex,
@@ -53,28 +51,5 @@ impl Encoding {
         };
 
         Ok(decoded)
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Url(Url_);
-
-impl Default for Url {
-    fn default() -> Self {
-        Url(Url_::parse("http://localhost:8545").unwrap())
-    }
-}
-
-impl std::str::FromStr for Url {
-    type Err = url::ParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Url(Url_::parse(s)?))
-    }
-}
-
-impl std::fmt::Display for Url {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
     }
 }

@@ -33,7 +33,7 @@ pub fn prompt_keypair_location_args(
     keypair_location_args: Option<KeypairLocationArgs>,
 ) -> KeypairLocationArgs {
     if keypair_location_args.is_none() {
-        let keypair = prompter::input::<String>("Enter keypair ID/path to retrieve", None);
+        let keypair = prompter::input::<String>("Enter keypair ID/path to retrieve", None, None);
         return KeypairLocationArgs {
             keypair: Some(keypair),
         };

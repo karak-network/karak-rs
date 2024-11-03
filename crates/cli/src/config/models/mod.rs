@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use crate::shared::Url;
+use crate::types::Url;
 use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, FromRepr, VariantNames};
@@ -20,6 +20,14 @@ pub struct Profile {
 pub enum Chain {
     #[serde(rename = "evm")]
     Evm { id: u64, rpc_url: Url },
+}
+
+impl Chain {
+    pub fn rpc_url(&self) -> Url {
+        match self {
+            Chain::Evm { rpc_url, .. } => rpc_url.clone(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, EnumString, VariantNames, FromRepr, Display)]

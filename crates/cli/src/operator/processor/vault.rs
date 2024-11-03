@@ -3,7 +3,7 @@ use alloy::{
     providers::Provider,
     transports::{http::reqwest, Transport},
 };
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect};
+use dialoguer::{theme::ColorfulTheme, Confirm};
 use eyre::Result;
 use karak_contracts::{
     core::contract::VaultLib,
@@ -13,6 +13,8 @@ use karak_contracts::{
 };
 use serde::Deserialize;
 use url::Url;
+
+use crate::prompter;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -42,10 +44,7 @@ async fn get_allowlisted_assets(chain_id: u64) -> Result<Vec<Address>> {
         .map(|asset| asset.asset)
         .collect::<Vec<_>>();
 
-    let selection = MultiSelect::with_theme(&ColorfulTheme::default())
-        .with_prompt("Select assets")
-        .items(&allowlisted_assets)
-        .interact()?;
+    let selection = prompter::multi_select("Select assets", &allowlisted_assets);
 
     Ok(selection
         .into_iter()
@@ -79,22 +78,18 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
         println!("Creating vault for asset: {asset}");
         let decimals = erc20_instance.decimals().call().await?._0;
 
-        let name = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Please enter vault name:")
-            .default(asset_name)
-            .interact()?;
+        let name = prompter::input("Please enter vault name", Some(asset_name), None);
 
-        let symbol = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Please enter vault symbol:")
-            .default(asset_symbol)
-            .interact()?;
+        let symbol = prompter::input("Please enter vault symbol", Some(asset_symbol), None);
 
-        let extra_data = Input::<Bytes>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Please enter any extra data:")
-            .with_initial_text("0x")
-            .default(Bytes::default())
-            .allow_empty(true)
-            .interact()?;
+        let extra_data = prompter::input(
+            "Please enter any extra data",
+            Some(Bytes::default()),
+            Some(prompter::InputOptions {
+                allow_empty: true,
+                initial_text: "0x".to_string(),
+            }),
+        );
 
         let vault_config = VaultLib::Config {
             asset,

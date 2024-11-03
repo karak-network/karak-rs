@@ -6,7 +6,7 @@ use color_eyre::owo_colors::OwoColorize;
 use crate::config::models::{Chain, Keystore, Profile};
 use crate::constants::DEFAULT_KARAK_DIR;
 use crate::prompter;
-use crate::shared::Url;
+use crate::types::Url;
 
 // Add validation to prompts
 pub fn profile_prompt(profile: Option<Profile>) -> Profile {
@@ -17,6 +17,7 @@ pub fn profile_prompt(profile: Option<Profile>) -> Profile {
         let key_generation_folder = PathBuf::from(prompter::input::<String>(
             "Enter key generation folder",
             Some(profile.key_generation_folder.to_str().unwrap().to_string()),
+            None,
         ))
         .canonicalize()
         .unwrap_or_else(|e| {
@@ -26,6 +27,7 @@ pub fn profile_prompt(profile: Option<Profile>) -> Profile {
         let core_address = prompter::input::<Address>(
             "Enter Karak Core contract address",
             Some(profile.core_address),
+            None,
         );
 
         return Profile {
@@ -42,6 +44,7 @@ pub fn profile_prompt(profile: Option<Profile>) -> Profile {
     let key_generation_folder = PathBuf::from(prompter::input::<String>(
         "Enter key generation folder",
         None,
+        None,
     ))
     .canonicalize()
     .unwrap_or_else(|e| {
@@ -52,7 +55,7 @@ pub fn profile_prompt(profile: Option<Profile>) -> Profile {
         );
         PathBuf::from(DEFAULT_KARAK_DIR)
     });
-    let core_address = prompter::input::<Address>("Enter Karak Core contract address", None);
+    let core_address = prompter::input::<Address>("Enter Karak Core contract address", None, None);
 
     Profile {
         chain,
@@ -72,8 +75,8 @@ fn prompt_chain(default: Option<Chain>) -> Chain {
         match default.unwrap() {
             Chain::Evm { id, rpc_url } => {
                 return Chain::Evm {
-                    id: prompter::input::<u64>("Enter chain ID", Some(id)),
-                    rpc_url: prompter::input::<Url>("Enter RPC URL", Some(rpc_url)),
+                    id: prompter::input::<u64>("Enter chain ID", Some(id), None),
+                    rpc_url: prompter::input::<Url>("Enter RPC URL", Some(rpc_url), None),
                 };
             }
         }
@@ -81,8 +84,8 @@ fn prompt_chain(default: Option<Chain>) -> Chain {
 
     match chain {
         Chain::Evm { id: _, rpc_url: _ } => {
-            let id = prompter::input::<u64>("Enter chain ID", None);
-            let rpc_url = prompter::input::<Url>("Enter RPC URL", None);
+            let id = prompter::input::<u64>("Enter chain ID", None, None);
+            let rpc_url = prompter::input::<Url>("Enter RPC URL", None, None);
             Chain::Evm { id, rpc_url }
         }
     }
@@ -103,6 +106,7 @@ fn prompt_keystore(keystore_type: &str, default: Option<Keystore>) -> Keystore {
                     path: PathBuf::from(prompter::input::<String>(
                         format!("Enter local {} keystore path", keystore_type).as_str(),
                         Some(path.to_str().unwrap().to_string()),
+                        None,
                     ))
                     .canonicalize()
                     .unwrap_or_else(|e| {
@@ -120,6 +124,7 @@ fn prompt_keystore(keystore_type: &str, default: Option<Keystore>) -> Keystore {
                     secret: prompter::input::<String>(
                         format!("Enter {} aws keystore secret", keystore_type).as_str(),
                         Some(secret),
+                        None,
                     ),
                 }
             }
@@ -131,6 +136,7 @@ fn prompt_keystore(keystore_type: &str, default: Option<Keystore>) -> Keystore {
             path: PathBuf::from(prompter::input::<String>(
                 format!("Enter local {} keystore path", keystore_type).as_str(),
                 Some(path.to_str().unwrap().to_string()),
+                None,
             ))
             .canonicalize()
             .unwrap_or_else(|e| {
@@ -145,6 +151,7 @@ fn prompt_keystore(keystore_type: &str, default: Option<Keystore>) -> Keystore {
         Keystore::Aws { secret: _ } => Keystore::Aws {
             secret: prompter::input::<String>(
                 format!("Enter {} aws keystore secret", keystore_type).as_str(),
+                None,
                 None,
             ),
         },
