@@ -15,6 +15,10 @@ pub async fn process(command: Config, profile: String, config_path: String) -> e
     }
 }
 
+pub async fn process_configure(profile: String, config_path: String) -> eyre::Result<()> {
+    process_update(profile, config_path, true)
+}
+
 pub fn pre_run(profile_name: String, config_path: String) -> eyre::Result<Profile> {
     let config = read_config(std::path::Path::new(&config_path))?;
     let profile = get_profile(&config, &profile_name)?;

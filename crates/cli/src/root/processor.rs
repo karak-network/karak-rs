@@ -18,6 +18,11 @@ pub async fn process(root: Root) -> eyre::Result<()> {
                 .await
         }
 
+        Some(Command::Configure) => {
+            config::processor::process_configure(root.profile.unwrap(), root.config_path.unwrap())
+                .await
+        }
+
         _ => {
             let profile = pre_run(root.profile.unwrap(), root.config_path.unwrap())?;
 
@@ -34,6 +39,8 @@ pub async fn process(root: Root) -> eyre::Result<()> {
                 }
 
                 Some(Command::Config(_)) => unreachable!(),
+
+                Some(Command::Configure) => unreachable!(),
 
                 None => Ok(()),
             }

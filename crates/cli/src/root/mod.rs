@@ -42,4 +42,8 @@ pub enum Command {
     /// Config management
     #[command(subcommand)]
     Config(Config),
+
+    /// Initialize Config
+    #[command()]
+    Configure,
 }
