@@ -43,7 +43,7 @@ pub fn profile_prompt(profile: Option<Profile>) -> Profile {
     let secp256k1_keystore = prompt_keystore("ECDSA", None);
     let key_generation_folder = PathBuf::from(prompter::input::<String>(
         "Enter key generation folder",
-        None,
+        Some(DEFAULT_KARAK_DIR.to_owned()),
         None,
     ))
     .canonicalize()
