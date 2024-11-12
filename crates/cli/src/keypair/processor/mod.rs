@@ -1,9 +1,11 @@
 pub mod generate;
+pub mod list;
 pub mod prompt;
 pub mod pubkey;
 
 use color_eyre::eyre;
 use generate::process_generate;
+use list::process_list;
 use pubkey::process_pubkey;
 
 use super::Keypair;
@@ -20,5 +22,6 @@ pub async fn process(command: Keypair, profile: Profile) -> eyre::Result<()> {
             keypair_location: keypair_location_args,
             curve,
         } => process_pubkey(keypair_args, keypair_location_args, curve).await,
+        Keypair::List => process_list(profile.key_generation_folder).await,
     }
 }

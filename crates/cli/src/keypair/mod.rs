@@ -24,6 +24,8 @@ pub enum Keypair {
         #[arg(long, value_enum)]
         curve: Option<Curve>,
     },
+    /// List keypairs
+    List,
     /// View public key
     Pubkey {
         #[command(flatten)]
