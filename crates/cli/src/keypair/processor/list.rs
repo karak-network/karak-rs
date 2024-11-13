@@ -1,27 +1,27 @@
-use std::fs;
-use std::path::PathBuf;
+use color_eyre::owo_colors::OwoColorize;
 
-pub async fn process_list(generation_folder: PathBuf) -> eyre::Result<()> {
-    let files = fs::read_dir(generation_folder)?;
-    for file in files {
-        let path = file?.path();
-        // only list files with .bls or .json extension and json files that are valid Addresses
-        if let Some(extension) = path.extension() {
-            match extension.to_str() {
-                Some("bls") => println!("{}", path.display()),
-                Some("json") => {
-                    if let Some(stem) = path.file_stem() {
-                        if let Some(name) = stem.to_str() {
-                            if let Ok(_) = alloy::primitives::Address::parse_checksummed(name, None)
-                            {
-                                println!("{}", path.display());
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
+use crate::config::models::{Curve, Profile};
+
+use super::prompt;
+
+pub async fn process_list(profile: Profile, curve: Option<Curve>) -> eyre::Result<()> {
+    let curve = prompt::prompt_curve(curve);
+    let keystores = profile.keystores;
+    if keystores.is_none() {
+        return Err(eyre::eyre!("No keystores found"));
     }
+    let keystores = keystores.unwrap();
+    let curve_keystores = keystores.get(&curve);
+    if curve_keystores.is_none() {
+        return Err(eyre::eyre!("No keystores found for curve {}", curve));
+    }
+    let keystores = curve_keystores.unwrap();
+
+    println!("\nKeystores for curve {}:", curve.blue());
+    for (name, keystore) in keystores {
+        println!("{} {}", "Name:", name.yellow());
+        println!("{:#?}\n", keystore.blue());
+    }
+
     Ok(())
 }

@@ -1,7 +1,8 @@
-use std::{fs, path::PathBuf};
+use std::fs;
 
 use alloy::signers::local::{LocalSigner, PrivateKeySigner};
 use color_eyre::eyre::{self, eyre};
+use color_eyre::owo_colors::OwoColorize;
 use karak_kms::{
     keypair::{bn254, traits::Keypair},
     keystore::{
@@ -11,14 +12,17 @@ use karak_kms::{
     },
 };
 
-use crate::config::models::Keystore;
+use crate::config::add_keystore_to_profile;
+use crate::config::models::{Keystore, Profile};
 use crate::keypair::processor::prompt;
-use crate::{keypair::KeypairArgs, shared::Curve};
+use crate::{config::models::Curve, keypair::KeypairArgs};
 
 pub async fn process_generate(
     keypair_args: Option<KeypairArgs>,
     curve: Option<Curve>,
-    generation_folder: PathBuf,
+    profile: Profile,
+    profile_name: &str,
+    config_path: String,
 ) -> eyre::Result<()> {
     let keypair_args = prompt::prompt_keypair_args(keypair_args);
     let curve = prompt::prompt_curve(curve);
@@ -26,11 +30,15 @@ pub async fn process_generate(
     let KeypairArgs {
         keystore,
         passphrase,
+        keystore_name,
     } = keypair_args;
 
-    // value will be set by prompt
+    // values will be set by prompt
     let keystore = keystore.unwrap();
     let passphrase = passphrase.unwrap();
+    let keystore_name = keystore_name.unwrap();
+
+    let generation_folder = profile.clone().key_generation_folder;
 
     println!("Generating new keypair for curve: {:?}", curve);
     match curve {
@@ -51,6 +59,18 @@ pub async fn process_generate(
                     let resolved_path_str =
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
+                    println!("\n{}", "Updating config profile...".blue());
+
+                    add_keystore_to_profile(
+                        profile_name.to_string(),
+                        profile,
+                        curve,
+                        Keystore::Local {
+                            path: resolved_path,
+                        },
+                        &keystore_name,
+                        config_path,
+                    )?;
                 }
                 Keystore::Aws { secret: _ } => {
                     let config = aws_config::load_from_env().await;
@@ -69,6 +89,18 @@ pub async fn process_generate(
                         .await?;
 
                     println!("Saved keypair to {secret_name} in AWS Secrets Manager");
+                    println!("\n{}", "Updating config profile...".blue());
+
+                    add_keystore_to_profile(
+                        profile_name.to_string(),
+                        profile,
+                        curve,
+                        Keystore::Aws {
+                            secret: secret_name,
+                        },
+                        &keystore_name,
+                        config_path,
+                    )?;
                 }
             }
         }
@@ -96,6 +128,18 @@ pub async fn process_generate(
                     let resolved_path_str =
                         resolved_path.to_str().ok_or(eyre!("Path is invalid"))?;
                     println!("Saved keypair to {resolved_path_str}");
+                    println!("\n{}", "Updating config profile...".blue());
+
+                    add_keystore_to_profile(
+                        profile_name.to_string(),
+                        profile,
+                        curve,
+                        Keystore::Local {
+                            path: resolved_path,
+                        },
+                        &keystore_name,
+                        config_path,
+                    )?;
                 }
                 Keystore::Aws { secret: _ } => {
                     todo!()

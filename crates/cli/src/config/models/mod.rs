@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use crate::types::Url;
 use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, FromRepr, VariantNames};
+
+use crate::types::Url;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Profile {
     pub chain: Chain,
     pub core_address: Address,
-    pub bn254_keystore: Keystore,
-    pub secp256k1_keystore: Keystore,
+    pub keystores: Option<HashMap<Curve, HashMap<String, Keystore>>>,
     pub key_generation_folder: PathBuf,
 }
 
@@ -28,6 +28,29 @@ impl Chain {
             Chain::Evm { rpc_url, .. } => rpc_url.clone(),
         }
     }
+}
+
+#[derive(
+    Serialize,
+    Deserialize,
+    Debug,
+    Clone,
+    EnumString,
+    VariantNames,
+    FromRepr,
+    Display,
+    Hash,
+    Eq,
+    PartialEq,
+)]
+pub enum Curve {
+    /// BN254 (also known as alt_bn128) is the curve used in Ethereum for BLS aggregation
+    #[serde(rename = "bn254")]
+    Bn254,
+
+    /// secp256k1 is the curve used in Ethereum for ECDSA signatures
+    #[serde(rename = "secp256k1")]
+    Secp256k1,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, EnumString, VariantNames, FromRepr, Display)]

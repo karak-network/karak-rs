@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs,
     io::{BufReader, BufWriter},
     path::{Path, PathBuf},
@@ -7,7 +8,10 @@ use std::{
 use color_eyre::owo_colors::OwoColorize;
 use thiserror::Error;
 
-use super::models::{Config, Profile};
+use super::{
+    models::{Config, Curve, Keystore, Profile},
+    processor::update::process_update,
+};
 
 #[derive(Debug, Error)]
 pub enum ConfigError {
@@ -61,4 +65,29 @@ pub fn get_profile(config: &Config, profile: &str) -> Result<Profile, ConfigErro
     } else {
         Err(ConfigError::ProfileNotFound(profile.to_string()))
     }
+}
+
+pub fn add_keystore_to_profile(
+    profile_name: String,
+    mut profile: Profile,
+    curve: Curve,
+    keystore: Keystore,
+    keystore_name: &str,
+    config_path: String,
+) -> eyre::Result<()> {
+    if profile.keystores.is_none() {
+        profile.keystores = Some(HashMap::new());
+    }
+
+    let keystores = profile.keystores.as_mut().unwrap();
+
+    // If the curve doesn't exist in the keystores, create a new inner HashMap for it
+    keystores
+        .entry(curve)
+        .or_insert_with(HashMap::new)
+        // Insert or update the keystore for the given name
+        .insert(keystore_name.to_string(), keystore);
+
+    process_update(profile_name, Some(profile), config_path, false)?;
+    Ok(())
 }

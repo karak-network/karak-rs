@@ -12,23 +12,26 @@ use crate::bls;
 use super::{Command, Root};
 
 pub async fn process(root: Root) -> eyre::Result<()> {
+    let profile_str = root.profile.unwrap();
+    let config_path = root.config_path.unwrap();
+
     match root.command {
         Some(Command::Config(config)) => {
-            config::processor::process(config, root.profile.unwrap(), root.config_path.unwrap())
-                .await
+            config::processor::process(config, profile_str, config_path).await
         }
 
         Some(Command::Configure) => {
-            config::processor::process_configure(root.profile.unwrap(), root.config_path.unwrap())
-                .await
+            config::processor::process_configure(profile_str, config_path).await
         }
 
         _ => {
-            let profile = pre_run(root.profile.unwrap(), root.config_path.unwrap())?;
+            let profile = pre_run(profile_str.clone(), config_path.clone())?;
+            let profile_name = profile_str.as_str();
 
             match root.command {
                 Some(Command::Keypair(keypair)) => {
-                    keypair::processor::process(keypair, profile).await
+                    keypair::processor::process(keypair, profile, profile_name, config_path.clone())
+                        .await
                 }
 
                 #[cfg(feature = "bls")]

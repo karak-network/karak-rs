@@ -4,7 +4,7 @@ use color_eyre::owo_colors::OwoColorize;
 use dialoguer::{theme::ColorfulTheme, Input, MultiSelect, Password, Select};
 use strum::VariantNames;
 
-pub fn select<T: VariantNames + ToString>(prompt: &str, default: Option<T>) -> (usize, bool) {
+pub fn select_enum<T: VariantNames + ToString>(prompt: &str, default: Option<T>) -> (usize, bool) {
     let theme = ColorfulTheme::default();
     let options = T::VARIANTS;
     let default_index = find_default_index(default.as_ref(), options);
@@ -13,6 +13,20 @@ pub fn select<T: VariantNames + ToString>(prompt: &str, default: Option<T>) -> (
         .with_prompt(prompt)
         .default(default_index)
         .items(options)
+        .interact()
+        .unwrap();
+
+    (selection_index, selection_index == default_index)
+}
+
+pub fn select_str(items: &[&str], prompt: &str, default: Option<&str>) -> (usize, bool) {
+    let theme = ColorfulTheme::default();
+    let default_index = find_default_index(default.as_ref(), items);
+
+    let selection_index = Select::with_theme(&theme)
+        .with_prompt(prompt)
+        .default(default_index)
+        .items(items)
         .interact()
         .unwrap();
 

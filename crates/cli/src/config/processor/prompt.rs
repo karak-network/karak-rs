@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use alloy::primitives::Address;
 use color_eyre::owo_colors::OwoColorize;
 
-use crate::config::models::{Chain, Keystore, Profile};
+use crate::config::models::{Chain, Profile};
 use crate::constants::DEFAULT_KARAK_DIR;
 use crate::prompter;
 use crate::types::Url;
@@ -12,8 +12,6 @@ use crate::types::Url;
 pub fn profile_prompt(profile: Option<Profile>) -> Profile {
     if let Some(profile) = profile {
         let chain = prompt_chain(Some(profile.chain));
-        let bn254_keystore = prompt_keystore("BLS", Some(profile.bn254_keystore));
-        let secp256k1_keystore = prompt_keystore("ECDSA", Some(profile.secp256k1_keystore));
         let key_generation_folder = PathBuf::from(prompter::input::<String>(
             "Enter key generation folder",
             Some(profile.key_generation_folder.to_str().unwrap().to_string()),
@@ -33,14 +31,11 @@ pub fn profile_prompt(profile: Option<Profile>) -> Profile {
         return Profile {
             chain,
             core_address,
-            bn254_keystore,
-            secp256k1_keystore,
+            keystores: profile.keystores,
             key_generation_folder,
         };
     }
     let chain = prompt_chain(None);
-    let bn254_keystore = prompt_keystore("BLS", None);
-    let secp256k1_keystore = prompt_keystore("ECDSA", None);
     let key_generation_folder = PathBuf::from(prompter::input::<String>(
         "Enter key generation folder",
         Some(DEFAULT_KARAK_DIR.to_owned()),
@@ -60,14 +55,14 @@ pub fn profile_prompt(profile: Option<Profile>) -> Profile {
     Profile {
         chain,
         core_address,
-        bn254_keystore,
-        secp256k1_keystore,
+        keystores: None,
         key_generation_folder,
     }
 }
 
 fn prompt_chain(default: Option<Chain>) -> Chain {
-    let (chain_index, is_default) = prompter::select::<Chain>("Select chain type", default.clone());
+    let (chain_index, is_default) =
+        prompter::select_enum::<Chain>("Select chain type", default.clone());
     // unwrap since the variants were created from this enum itself
     let chain = Chain::from_repr(chain_index).unwrap();
 
@@ -88,72 +83,5 @@ fn prompt_chain(default: Option<Chain>) -> Chain {
             let rpc_url = prompter::input::<Url>("Enter RPC URL", None, None);
             Chain::Evm { id, rpc_url }
         }
-    }
-}
-
-fn prompt_keystore(keystore_type: &str, default: Option<Keystore>) -> Keystore {
-    let (keystore_index, is_default) = prompter::select::<Keystore>(
-        format!("Select {} keystore type", keystore_type).as_str(),
-        default.clone(),
-    );
-    // unwrap since the variants were created from this enum itself
-    let keystore = Keystore::from_repr(keystore_index).unwrap();
-
-    if is_default && default.is_some() {
-        match default.unwrap() {
-            Keystore::Local { path } => {
-                return Keystore::Local {
-                    path: PathBuf::from(prompter::input::<String>(
-                        format!("Enter local {} keystore path", keystore_type).as_str(),
-                        Some(path.to_str().unwrap().to_string()),
-                        None,
-                    ))
-                    .canonicalize()
-                    .unwrap_or_else(|e| {
-                        println!(
-                            "{}. Using default keystore path: {}",
-                            e.to_string().red(),
-                            DEFAULT_KARAK_DIR.bold()
-                        );
-                        PathBuf::from(DEFAULT_KARAK_DIR)
-                    }),
-                }
-            }
-            Keystore::Aws { secret } => {
-                return Keystore::Aws {
-                    secret: prompter::input::<String>(
-                        format!("Enter {} aws keystore secret", keystore_type).as_str(),
-                        Some(secret),
-                        None,
-                    ),
-                }
-            }
-        }
-    }
-
-    match keystore {
-        Keystore::Local { path } => Keystore::Local {
-            path: PathBuf::from(prompter::input::<String>(
-                format!("Enter local {} keystore path", keystore_type).as_str(),
-                Some(path.to_str().unwrap().to_string()),
-                None,
-            ))
-            .canonicalize()
-            .unwrap_or_else(|e| {
-                println!(
-                    "{} - Using default keystore path: {}",
-                    e.to_string().red(),
-                    DEFAULT_KARAK_DIR.bold()
-                );
-                PathBuf::from(DEFAULT_KARAK_DIR)
-            }),
-        },
-        Keystore::Aws { secret: _ } => Keystore::Aws {
-            secret: prompter::input::<String>(
-                format!("Enter {} aws keystore secret", keystore_type).as_str(),
-                None,
-                None,
-            ),
-        },
     }
 }

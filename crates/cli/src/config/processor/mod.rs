@@ -10,13 +10,13 @@ use update::process_update;
 
 pub async fn process(command: Config, profile: String, config_path: String) -> eyre::Result<()> {
     match command {
-        Config::Update { reset } => process_update(profile, config_path, reset),
+        Config::Update { reset } => process_update(profile, None, config_path, reset),
         Config::Get => process_get(profile, config_path),
     }
 }
 
 pub async fn process_configure(profile: String, config_path: String) -> eyre::Result<()> {
-    process_update(profile, config_path, true)
+    process_update(profile, None, config_path, true)
 }
 
 pub fn pre_run(profile_name: String, config_path: String) -> eyre::Result<Profile> {
