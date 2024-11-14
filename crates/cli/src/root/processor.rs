@@ -38,7 +38,8 @@ pub async fn process(root: Root) -> eyre::Result<()> {
                 Some(Command::BLS(bls)) => bls::processor::process(bls, profile).await,
 
                 Some(Command::Operator(operator)) => {
-                    operator::processor::process(operator, profile).await
+                    operator::processor::process(*operator, profile, profile_name, config_path)
+                        .await
                 }
 
                 Some(Command::Config(_)) => unreachable!(),

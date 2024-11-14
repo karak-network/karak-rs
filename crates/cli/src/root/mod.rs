@@ -37,7 +37,7 @@ pub enum Command {
 
     /// Operator management
     #[command()]
-    Operator(OperatorArgs),
+    Operator(Box<OperatorArgs>),
 
     /// Config management
     #[command(subcommand)]

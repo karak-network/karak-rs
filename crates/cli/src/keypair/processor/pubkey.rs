@@ -20,19 +20,17 @@ pub async fn process_pubkey(
     curve: Option<Curve>,
 ) -> eyre::Result<()> {
     let curve = prompt::prompt_curve(curve);
-    if profile.keystores.is_none() {
-        return Err(eyre::eyre!("No keystores found in profile"));
+    let keystores = profile.keystores.get(&curve);
+    if keystores.is_none() {
+        return Err(eyre::eyre!("No keystores found for curve {}", curve));
     }
-    let keystores = profile.keystores.unwrap();
-    let keystore_name =
-        prompt::prompt_keystore_name(keystore_name, keystores.get(&curve).unwrap().clone());
+    let keystore_name = prompt::prompt_keystore_name(keystore_name, keystores.unwrap().clone());
     let passphrase = prompt::prompt_passphrase(passphrase);
 
-    let keystore = keystores.get(&curve).unwrap().get(&keystore_name);
+    let keystore = keystores.unwrap().get(&keystore_name);
     if keystore.is_none() {
-        return Err(eyre::eyre!("Keystore not found"));
+        return Err(eyre::eyre!("Keystore for name {} not found", keystore_name));
     }
-
     let keystore = keystore.unwrap();
 
     match curve {

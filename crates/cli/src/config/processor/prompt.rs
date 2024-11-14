@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use alloy::primitives::Address;
@@ -55,7 +56,7 @@ pub fn profile_prompt(profile: Option<Profile>) -> Profile {
     Profile {
         chain,
         core_address,
-        keystores: None,
+        keystores: HashMap::new(),
         key_generation_folder,
     }
 }

@@ -19,36 +19,57 @@ use karak_contracts::{
     Core::CoreInstance,
 };
 
-use crate::config::models::Keystore;
-use crate::config::models::Profile;
+use crate::config::models::{Curve, Keystore, Profile};
 use crate::prompter;
 use prompt::*;
 
 use super::{OperatorArgs, OperatorCommand};
 
-pub async fn process(args: OperatorArgs, profile: Profile) -> eyre::Result<()> {
-    let secp256k1_keystore_type = args
-        .secp256k1_keystore_type
-        .unwrap_or_else(|| prompt_secp256k1_keystore_type());
+pub async fn process(
+    args: OperatorArgs,
+    profile: Profile,
+    profile_name: &str,
+    config_path: String,
+) -> eyre::Result<()> {
+    let secp256k1_keystore_type = if args.secp256k1_keystore_type.is_none() {
+        prompt_keystore_type(
+            Curve::Secp256k1,
+            profile.clone(),
+            profile_name,
+            config_path.clone(),
+        )
+        .await?
+    } else {
+        match args.secp256k1_keystore_type.unwrap() {
+            Keystore::Local { path: _ } => {
+                let secp256k1_keystore_path = match args.secp256k1_keystore_path {
+                    Some(path) => path,
+                    None => prompt_keystore_path(),
+                };
+
+                Keystore::Local {
+                    path: secp256k1_keystore_path,
+                }
+            }
+            // TODO: Update config to handle AWS secret and access keys
+            Keystore::Aws { secret: s } => Keystore::Aws { secret: s },
+        }
+    };
 
     let (operator_wallet, operator_address) = match secp256k1_keystore_type {
-        Keystore::Local { path: _ } => {
-            let secp256k1_keystore_path = match args.secp256k1_keystore_path {
-                Some(path) => path,
-                None => prompt_secp256k1_keystore_path(),
-            };
+        Keystore::Local { path } => {
             let secp256k1_passphrase = match args.secp256k1_passphrase {
                 Some(passphrase) => passphrase,
                 None => prompt_secp256k1_passphrase(),
             };
 
-            let secp_256k1_signer =
-                LocalSigner::decrypt_keystore(secp256k1_keystore_path, secp256k1_passphrase)?;
+            let secp_256k1_signer = LocalSigner::decrypt_keystore(path, secp256k1_passphrase)?;
 
             let operator_address = secp_256k1_signer.address();
             let operator_wallet = EthereumWallet::from(secp_256k1_signer);
             (operator_wallet, operator_address)
         }
+        // TODO: Update config to handle AWS secret and access keys
         Keystore::Aws { secret: _ } => {
             let region = args
                 .aws_region
@@ -96,19 +117,40 @@ pub async fn process(args: OperatorArgs, profile: Profile) -> eyre::Result<()> {
         } => {
             let core_instance = CoreInstance::new(profile.core_address, provider.clone());
 
-            let bn254_keypair_location = bn254_keypair_location
-                .unwrap_or_else(|| prompter::input("Enter BN254 keypair location", None, None));
-            let bn254_keystore = bn254_keystore.unwrap_or_else(|| prompt_bn254_keystore_type());
+            let bn254_keystore = if bn254_keystore.is_none() {
+                prompt_keystore_type(
+                    Curve::Bn254,
+                    profile.clone(),
+                    profile_name,
+                    config_path.clone(),
+                )
+                .await?
+            } else {
+                match bn254_keystore.unwrap() {
+                    Keystore::Local { path: _ } => {
+                        let bn254_keypair_location = match bn254_keypair_location {
+                            Some(path) => path,
+                            None => prompt_keystore_path(),
+                        };
+
+                        Keystore::Local {
+                            path: bn254_keypair_location,
+                        }
+                    }
+                    // TODO: Update config to handle AWS secret and access keys
+                    Keystore::Aws { secret: s } => Keystore::Aws { secret: s },
+                }
+            };
+
             let bn254_passphrase = bn254_passphrase
                 .unwrap_or_else(|| prompter::password("Enter BN254 keypair passphrase: "));
             let dss_address = dss_address
                 .unwrap_or_else(|| prompter::input::<Address>("Enter DSS address", None, None));
             let message =
                 message.unwrap_or_else(|| prompter::input::<String>("Enter message", None, None));
-            let message_encoding = message_encoding.unwrap_or_else(|| prompt_message_encoding());
+            let message_encoding = message_encoding.unwrap_or_else(prompt_message_encoding);
 
             dss::process_registration(dss::DSSRegistrationArgs {
-                bn254_keypair_location: &bn254_keypair_location,
                 bn254_keystore: &bn254_keystore,
                 bn254_passphrase: &bn254_passphrase,
                 core_instance: core_instance.clone(),
@@ -153,7 +195,7 @@ pub async fn process(args: OperatorArgs, profile: Profile) -> eyre::Result<()> {
         } => {
             let core_instance = CoreInstance::new(profile.core_address, provider.clone());
 
-            let stake_update_type = stake_update_type.unwrap_or_else(|| prompt_stake_update_type());
+            let stake_update_type = stake_update_type.unwrap_or_else(prompt_stake_update_type);
             let vault_address = vault_address
                 .unwrap_or_else(|| prompter::input::<Address>("Enter vault address", None, None));
             let dss_address = dss_address
@@ -176,7 +218,7 @@ pub async fn process(args: OperatorArgs, profile: Profile) -> eyre::Result<()> {
         } => {
             let core_instance = CoreInstance::new(profile.core_address, provider.clone());
 
-            let stake_update_type = stake_update_type.unwrap_or_else(|| prompt_stake_update_type());
+            let stake_update_type = stake_update_type.unwrap_or_else(prompt_stake_update_type);
             let vault_address = vault_address
                 .unwrap_or_else(|| prompter::input::<Address>("Enter vault address", None, None));
             let dss_address = dss_address

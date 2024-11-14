@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     fs,
     io::{BufReader, BufWriter},
     path::{Path, PathBuf},
@@ -75,18 +74,10 @@ pub fn add_keystore_to_profile(
     keystore_name: &str,
     config_path: String,
 ) -> eyre::Result<()> {
-    if profile.keystores.is_none() {
-        profile.keystores = Some(HashMap::new());
-    }
+    let keystores = profile.keystores.entry(curve).or_default();
 
-    let keystores = profile.keystores.as_mut().unwrap();
-
-    // If the curve doesn't exist in the keystores, create a new inner HashMap for it
-    keystores
-        .entry(curve)
-        .or_insert_with(HashMap::new)
-        // Insert or update the keystore for the given name
-        .insert(keystore_name.to_string(), keystore);
+    // Insert or update the keystore for the given name
+    keystores.insert(keystore_name.to_string(), keystore);
 
     process_update(profile_name, Some(profile), config_path, false)?;
     Ok(())

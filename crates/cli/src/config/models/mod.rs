@@ -11,7 +11,7 @@ use crate::types::Url;
 pub struct Profile {
     pub chain: Chain,
     pub core_address: Address,
-    pub keystores: Option<HashMap<Curve, HashMap<String, Keystore>>>,
+    pub keystores: HashMap<Curve, HashMap<String, Keystore>>,
     pub key_generation_folder: PathBuf,
 }
 

@@ -62,7 +62,7 @@ pub enum OperatorCommand {
     /// Perform BLS registration to DSS
     RegisterToDSS {
         #[arg(long)]
-        bn254_keypair_location: Option<String>,
+        bn254_keypair_location: Option<PathBuf>,
 
         #[arg(long)]
         bn254_keystore: Option<Keystore>,

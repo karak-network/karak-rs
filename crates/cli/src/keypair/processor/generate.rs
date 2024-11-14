@@ -24,6 +24,17 @@ pub async fn process_generate(
     profile_name: &str,
     config_path: String,
 ) -> eyre::Result<()> {
+    generate_keystore(keypair_args, curve, profile, profile_name, config_path).await?;
+    Ok(())
+}
+
+pub async fn generate_keystore(
+    keypair_args: Option<KeypairArgs>,
+    curve: Option<Curve>,
+    profile: Profile,
+    profile_name: &str,
+    config_path: String,
+) -> eyre::Result<Keystore> {
     let keypair_args = prompt::prompt_keypair_args(keypair_args);
     let curve = prompt::prompt_curve(curve);
 
@@ -61,16 +72,20 @@ pub async fn process_generate(
                     println!("Saved keypair to {resolved_path_str}");
                     println!("\n{}", "Updating config profile...".blue());
 
+                    let keystore = Keystore::Local {
+                        path: resolved_path,
+                    };
+
                     add_keystore_to_profile(
                         profile_name.to_string(),
                         profile,
                         curve,
-                        Keystore::Local {
-                            path: resolved_path,
-                        },
+                        keystore.clone(),
                         &keystore_name,
                         config_path,
                     )?;
+
+                    Ok(keystore)
                 }
                 Keystore::Aws { secret: _ } => {
                     let config = aws_config::load_from_env().await;
@@ -91,16 +106,20 @@ pub async fn process_generate(
                     println!("Saved keypair to {secret_name} in AWS Secrets Manager");
                     println!("\n{}", "Updating config profile...".blue());
 
+                    let keystore = Keystore::Aws {
+                        secret: secret_name,
+                    };
+
                     add_keystore_to_profile(
                         profile_name.to_string(),
                         profile,
                         curve,
-                        Keystore::Aws {
-                            secret: secret_name,
-                        },
+                        keystore.clone(),
                         &keystore_name,
                         config_path,
                     )?;
+
+                    Ok(keystore)
                 }
             }
         }
@@ -130,16 +149,20 @@ pub async fn process_generate(
                     println!("Saved keypair to {resolved_path_str}");
                     println!("\n{}", "Updating config profile...".blue());
 
+                    let keystore = Keystore::Local {
+                        path: resolved_path,
+                    };
+
                     add_keystore_to_profile(
                         profile_name.to_string(),
                         profile,
                         curve,
-                        Keystore::Local {
-                            path: resolved_path,
-                        },
+                        keystore.clone(),
                         &keystore_name,
                         config_path,
                     )?;
+
+                    Ok(keystore)
                 }
                 Keystore::Aws { secret: _ } => {
                     todo!()
@@ -147,5 +170,4 @@ pub async fn process_generate(
             }
         }
     }
-    Ok(())
 }
