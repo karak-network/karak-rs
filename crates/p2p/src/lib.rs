@@ -163,6 +163,7 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
             select! {
                 Ok(_) = &mut self.termination_receiver => {
                     tracing::info!("Termination message received");
+                    break;
                 }
                 Some(gossip_message) = self.message_receiver.recv()=> {
                     self.publish_message(&gossip_message.topic, gossip_message.message).unwrap_or_else(|e| {
