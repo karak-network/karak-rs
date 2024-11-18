@@ -14,6 +14,8 @@ use karak_contracts::{
 use serde::Deserialize;
 use url::Url;
 
+use crate::util::parse_token_str;
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AllowlistedAsset {
@@ -74,8 +76,11 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     let mut vault_configs = Vec::new();
     for erc20_instance in erc20_instances {
         let asset = *erc20_instance.address();
-        let asset_symbol = erc20_instance.symbol().call().await?._0;
-        let asset_name = erc20_instance.name().call().await?._0;
+        let asset_symbol_bytes = erc20_instance.symbol().call_raw().await?;
+        let asset_symbol = parse_token_str(&asset_symbol_bytes).unwrap_or_default();
+        let asset_name_bytes = erc20_instance.name().call_raw().await?;
+        let asset_name = parse_token_str(&asset_name_bytes).unwrap_or_default();
+
         println!("Creating vault for asset: {asset}");
         let decimals = erc20_instance.decimals().call().await?._0;
 
