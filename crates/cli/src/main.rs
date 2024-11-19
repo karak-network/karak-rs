@@ -13,6 +13,7 @@ pub mod prompter;
 pub mod root;
 pub mod shared;
 mod types;
+pub mod util;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
