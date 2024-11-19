@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use alloy::{
     primitives::{Address, Bytes, U256},
     providers::Provider,
@@ -11,7 +13,8 @@ use karak_contracts::{
     vault::Vault::VaultInstance,
     Core::{self, CoreInstance},
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use tokio::task::JoinSet;
 use url::Url;
 
 use crate::prompter;
@@ -35,7 +38,65 @@ pub struct AllowlistedAssets {
     pub result: AllowlistedAssetsData,
 }
 
-async fn get_allowlisted_assets(chain_id: u64) -> Result<Vec<Address>> {
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+pub struct Asset {
+    pub address: Address,
+    pub symbol: String,
+    pub name: String,
+    pub decimals: u8,
+}
+
+impl Display for Asset {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{symbol} ({name}) - {address}",
+            symbol = self.symbol,
+            name = self.name,
+            address = self.address,
+        )
+    }
+}
+
+async fn get_asset<T: Transport + Clone, P: Provider<T>>(
+    asset_address: Address,
+    provider: P,
+) -> Result<Asset> {
+    let erc20_instance = ERC20MintableInstance::new(asset_address, provider);
+    let symbol = erc20_instance.symbol().call_raw().await?;
+    let name = erc20_instance.name().call_raw().await?;
+    let decimals = erc20_instance.decimals().call().await?._0;
+
+    Ok(Asset {
+        address: asset_address,
+        symbol: parse_token_str(&symbol).unwrap_or_default(),
+        name: parse_token_str(&name).unwrap_or_default(),
+        decimals,
+    })
+}
+
+async fn get_assets<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
+    asset_addresses: &[Address],
+    provider: P,
+) -> Result<Vec<Asset>> {
+    let mut join_set = JoinSet::new();
+    for asset_address in asset_addresses {
+        join_set.spawn(get_asset(*asset_address, provider.clone()));
+    }
+
+    let assets = join_set
+        .join_all()
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(assets)
+}
+
+async fn get_allowlisted_assets<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
+    chain_id: u64,
+    provider: P,
+) -> Result<Vec<Asset>> {
     let url = Url::parse("https://v2-backend.karak.network/trpc/getAllowlistedAssets")?;
     let response = reqwest::get(url).await?.json::<AllowlistedAssets>().await?;
     let allowlisted_assets = response
@@ -46,46 +107,41 @@ async fn get_allowlisted_assets(chain_id: u64) -> Result<Vec<Address>> {
         .map(|asset| asset.asset)
         .collect::<Vec<_>>();
 
-    let selection = prompter::multi_select("Select assets", &allowlisted_assets);
+    let assets = get_assets(&allowlisted_assets, provider).await?;
+
+    let selection = prompter::multi_select("Select assets", &assets);
 
     Ok(selection?
         .into_iter()
-        .map(|index| allowlisted_assets[index])
+        .map(|index| assets[index].clone())
         .collect::<Vec<_>>())
 }
 
-pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone>(
-    assets: Option<Vec<Address>>,
+pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
+    asset_addresses: Option<Vec<Address>>,
     operator_address: Address,
     vault_impl: Option<Address>,
     core_instance: CoreInstance<T, P>,
     provider: P,
 ) -> Result<()> {
     let chain_id = provider.get_chain_id().await?;
-    let assets = match &assets {
-        Some(assets) => assets.clone(),
-        None => get_allowlisted_assets(chain_id).await?,
+    let assets = match &asset_addresses {
+        Some(asset_addresses) => get_assets(asset_addresses, provider.clone()).await?,
+        None => get_allowlisted_assets(chain_id, provider.clone()).await?,
     };
     let vault_impl = vault_impl.unwrap_or_default();
-    let erc20_instances = assets
-        .iter()
-        .map(|asset| ERC20MintableInstance::new(*asset, provider.clone()))
-        .collect::<Vec<_>>();
 
     let mut vault_configs = Vec::new();
-    for erc20_instance in erc20_instances {
-        let asset = *erc20_instance.address();
-        let asset_symbol_bytes = erc20_instance.symbol().call_raw().await?;
-        let asset_symbol = parse_token_str(&asset_symbol_bytes).unwrap_or_default();
-        let asset_name_bytes = erc20_instance.name().call_raw().await?;
-        let asset_name = parse_token_str(&asset_name_bytes).unwrap_or_default();
+    for asset in assets {
+        println!("Creating vault for asset: {}", asset.symbol);
 
-        println!("Creating vault for asset: {asset}");
-        let decimals = erc20_instance.decimals().call().await?._0;
+        let name = prompter::input("Please enter vault name", Some(asset.name.clone()), None)?;
 
-        let name = prompter::input("Please enter vault name", Some(asset_name), None)?;
-
-        let symbol = prompter::input("Please enter vault symbol", Some(asset_symbol), None)?;
+        let symbol = prompter::input(
+            "Please enter vault symbol",
+            Some(asset.symbol.clone()),
+            None,
+        )?;
 
         let extra_data = prompter::input(
             "Please enter any extra data",
@@ -97,8 +153,8 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
         )?;
 
         let vault_config = VaultLib::Config {
-            asset,
-            decimals,
+            asset: asset.address,
+            decimals: asset.decimals,
             name,
             symbol,
             operator: operator_address,
