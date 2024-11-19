@@ -247,9 +247,11 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     let receipt = core_instance
         .deployVaults(vault_configs, vault_impl)
         .send()
-        .await?
+        .await
+        .map_err(karak_contracts::core::contract::Error::from)?
         .get_receipt()
-        .await?;
+        .await
+        .map_err(karak_contracts::core::contract::Error::from)?;
 
     let asset_map = assets
         .into_iter()
@@ -281,9 +283,11 @@ pub async fn deposit_to_vault<T: Transport + Clone, P: Provider<T>>(
     let receipt = erc20_instance
         .approve(vault_address, amount)
         .send()
-        .await?
+        .await
+        .map_err(karak_contracts::erc20::mintable::Error::from)?
         .get_receipt()
-        .await?;
+        .await
+        .map_err(karak_contracts::erc20::mintable::Error::from)?;
 
     println!(
         "Approved spending {} {} in tx {}",
@@ -293,9 +297,11 @@ pub async fn deposit_to_vault<T: Transport + Clone, P: Provider<T>>(
     let receipt = vault_instance
         .deposit_0(amount, operator_address)
         .send()
-        .await?
+        .await
+        .map_err(karak_contracts::vault::Error::from)?
         .get_receipt()
-        .await?;
+        .await
+        .map_err(karak_contracts::vault::Error::from)?;
 
     println!(
         "Deposited {} {} to vault {} in tx {}",

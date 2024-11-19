@@ -41,9 +41,11 @@ pub async fn process_stake_update_request<T: Transport + Clone, P: Provider<T>>(
     let receipt = core_instance
         .requestUpdateVaultStakeInDSS(stake_update_request)
         .send()
-        .await?
+        .await
+        .map_err(karak_contracts::core::contract::Error::from)?
         .get_receipt()
-        .await?;
+        .await
+        .map_err(karak_contracts::core::contract::Error::from)?;
 
     println!("Requested stake update in tx {}", receipt.transaction_hash);
 
@@ -83,9 +85,11 @@ pub async fn process_finalize_stake_update_request<T: Transport + Clone, P: Prov
     let receipt = core_instance
         .finalizeUpdateVaultStakeInDSS(queued_stake_update)
         .send()
-        .await?
+        .await
+        .map_err(karak_contracts::core::contract::Error::from)?
         .get_receipt()
-        .await?;
+        .await
+        .map_err(karak_contracts::core::contract::Error::from)?;
 
     println!("Finalized stake update in tx {}", receipt.transaction_hash);
 
