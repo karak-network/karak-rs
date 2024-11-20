@@ -48,7 +48,7 @@ async fn get_allowlisted_assets(chain_id: u64) -> Result<Vec<Address>> {
 
     let selection = prompter::multi_select("Select assets", &allowlisted_assets);
 
-    Ok(selection
+    Ok(selection?
         .into_iter()
         .map(|index| allowlisted_assets[index])
         .collect::<Vec<_>>())
@@ -83,9 +83,9 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
         println!("Creating vault for asset: {asset}");
         let decimals = erc20_instance.decimals().call().await?._0;
 
-        let name = prompter::input("Please enter vault name", Some(asset_name), None);
+        let name = prompter::input("Please enter vault name", Some(asset_name), None)?;
 
-        let symbol = prompter::input("Please enter vault symbol", Some(asset_symbol), None);
+        let symbol = prompter::input("Please enter vault symbol", Some(asset_symbol), None)?;
 
         let extra_data = prompter::input(
             "Please enter any extra data",
@@ -94,7 +94,7 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
                 allow_empty: true,
                 initial_text: "0x".to_string(),
             }),
-        );
+        )?;
 
         let vault_config = VaultLib::Config {
             asset,

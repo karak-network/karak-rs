@@ -1,10 +1,14 @@
 use std::str::FromStr;
 
+use color_eyre::eyre;
 use color_eyre::owo_colors::OwoColorize;
 use dialoguer::{theme::ColorfulTheme, Input, MultiSelect, Password, Select};
 use strum::VariantNames;
 
-pub fn select_enum<T: VariantNames + ToString>(prompt: &str, default: Option<T>) -> (usize, bool) {
+pub fn select_enum<T: VariantNames + ToString>(
+    prompt: &str,
+    default: Option<T>,
+) -> eyre::Result<(usize, bool)> {
     let theme = ColorfulTheme::default();
     let options = T::VARIANTS;
     let default_index = find_default_index(default.as_ref(), options);
@@ -13,13 +17,16 @@ pub fn select_enum<T: VariantNames + ToString>(prompt: &str, default: Option<T>)
         .with_prompt(prompt)
         .default(default_index)
         .items(options)
-        .interact()
-        .unwrap();
+        .interact()?;
 
-    (selection_index, selection_index == default_index)
+    Ok((selection_index, selection_index == default_index))
 }
 
-pub fn select_str(items: &[&str], prompt: &str, default: Option<&str>) -> (usize, bool) {
+pub fn select_str(
+    items: &[&str],
+    prompt: &str,
+    default: Option<&str>,
+) -> eyre::Result<(usize, bool)> {
     let theme = ColorfulTheme::default();
     let default_index = find_default_index(default.as_ref(), items);
 
@@ -27,10 +34,9 @@ pub fn select_str(items: &[&str], prompt: &str, default: Option<&str>) -> (usize
         .with_prompt(prompt)
         .default(default_index)
         .items(items)
-        .interact()
-        .unwrap();
+        .interact()?;
 
-    (selection_index, selection_index == default_index)
+    Ok((selection_index, selection_index == default_index))
 }
 
 #[derive(Clone)]
@@ -39,7 +45,7 @@ pub struct InputOptions {
     pub initial_text: String,
 }
 
-pub fn input<T>(prompt: &str, default: Option<T>, opts: Option<InputOptions>) -> T
+pub fn input<T>(prompt: &str, default: Option<T>, opts: Option<InputOptions>) -> eyre::Result<T>
 where
     T: Clone + ToString + FromStr,
     <T as FromStr>::Err: ToString,
@@ -57,24 +63,27 @@ where
             input = input.default(default.to_string());
         }
 
-        let response = input.interact_text().unwrap();
+        let response = input.interact_text()?;
         match response.parse::<T>() {
-            Ok(value) => return value,
+            Ok(value) => return Ok(value),
             Err(e) => println!("Invalid input - {:?}", e.to_string().red()),
         }
     }
 }
 
-pub fn password(prompt: &str) -> String {
-    Password::new().with_prompt(prompt).interact().unwrap()
+pub fn password(prompt: &str) -> eyre::Result<String> {
+    Password::new()
+        .with_prompt(prompt)
+        .interact()
+        .map_err(|e| eyre::eyre!(e))
 }
 
-pub fn multi_select<T: ToString>(prompt: &str, items: &[T]) -> Vec<usize> {
+pub fn multi_select<T: ToString>(prompt: &str, items: &[T]) -> eyre::Result<Vec<usize>> {
     MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt(prompt)
         .items(items)
         .interact()
-        .unwrap()
+        .map_err(|e| eyre::eyre!(e))
 }
 
 fn find_default_index<T: ToString>(default: Option<&T>, variants: &[&str]) -> usize {

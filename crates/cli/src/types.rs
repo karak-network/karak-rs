@@ -6,6 +6,7 @@ pub struct Url(Url_);
 
 impl Default for Url {
     fn default() -> Self {
+        // can unwrap safely since its a hardcoded string
         Url(Url_::parse("http://localhost:8545").unwrap())
     }
 }

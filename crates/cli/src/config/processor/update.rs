@@ -36,13 +36,13 @@ pub fn process_update(
             println!("Profile: {}", profile_name.cyan());
 
             match get_profile(&config, &profile_name) {
-                Ok(profile) => profile_prompt(Some(profile)),
+                Ok(profile) => profile_prompt(Some(profile))?,
                 Err(ConfigError::ProfileNotFound(profile_name)) => {
                     println!(
                         "Profile {} not found. Creating new profile...",
                         profile_name.cyan()
                     );
-                    profile_prompt(None)
+                    profile_prompt(None)?
                 }
                 Err(e) => return Err(e.into()),
             }

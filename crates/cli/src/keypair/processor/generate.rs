@@ -35,8 +35,8 @@ pub async fn generate_keystore(
     profile_name: &str,
     config_path: String,
 ) -> eyre::Result<Keystore> {
-    let keypair_args = prompt::prompt_keypair_args(keypair_args);
-    let curve = prompt::prompt_curve(curve);
+    let keypair_args = prompt::prompt_keypair_args(keypair_args)?;
+    let curve = prompt::prompt_curve(curve)?;
 
     let KeypairArgs {
         keystore,
