@@ -68,15 +68,12 @@ fn prompt_chain(default: Option<Chain>) -> eyre::Result<Chain> {
     // unwrap since the variants were created from this enum itself
     let chain = Chain::from_repr(chain_index).unwrap();
 
-    if is_default && default.is_some() {
-        // unwrap is safe since default is Some according to the if condition
-        match default.unwrap() {
-            Chain::Evm { id, rpc_url } => {
-                return Ok(Chain::Evm {
-                    id: prompter::input::<u64>("Enter chain ID", Some(id), None)?,
-                    rpc_url: prompter::input::<Url>("Enter RPC URL", Some(rpc_url), None)?,
-                })
-            }
+    if is_default {
+        if let Some(Chain::Evm { id, rpc_url }) = default {
+            return Ok(Chain::Evm {
+                id: prompter::input::<u64>("Enter chain ID", Some(id), None)?,
+                rpc_url: prompter::input::<Url>("Enter RPC URL", Some(rpc_url), None)?,
+            });
         }
     }
 
