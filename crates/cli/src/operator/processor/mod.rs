@@ -31,30 +31,31 @@ pub async fn process(
     profile_name: &str,
     config_path: String,
 ) -> eyre::Result<()> {
-    let secp256k1_keystore_type = if args.secp256k1_keystore_type.is_none() {
-        prompt_keystore_type(
-            Curve::Secp256k1,
-            profile.clone(),
-            profile_name,
-            config_path.clone(),
-        )
-        .await?
-    } else {
-        match args.secp256k1_keystore_type.unwrap() {
-            Keystore::Local { path: _ } => {
-                let secp256k1_keystore_path = match args.secp256k1_keystore_path {
-                    Some(path) => path,
-                    None => prompt_keystore_path()?,
-                };
+    let secp256k1_keystore_type =
+        if let Some(secp256k1_keystore_type) = args.secp256k1_keystore_type {
+            match secp256k1_keystore_type {
+                Keystore::Local { path: _ } => {
+                    let secp256k1_keystore_path = match args.secp256k1_keystore_path {
+                        Some(path) => path,
+                        None => prompt_keystore_path()?,
+                    };
 
-                Keystore::Local {
-                    path: secp256k1_keystore_path,
+                    Keystore::Local {
+                        path: secp256k1_keystore_path,
+                    }
                 }
+                // TODO: Update config to handle AWS secret and access keys
+                Keystore::Aws { secret: s } => Keystore::Aws { secret: s },
             }
-            // TODO: Update config to handle AWS secret and access keys
-            Keystore::Aws { secret: s } => Keystore::Aws { secret: s },
-        }
-    };
+        } else {
+            prompt_keystore_type(
+                Curve::Secp256k1,
+                profile.clone(),
+                profile_name,
+                config_path.clone(),
+            )
+            .await?
+        };
 
     let (operator_wallet, operator_address) = match secp256k1_keystore_type {
         Keystore::Local { path } => {
