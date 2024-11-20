@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 use alloy::{
     primitives::{Address, Bytes, U256},
@@ -84,11 +84,13 @@ async fn get_assets<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
         join_set.spawn(get_asset(*asset_address, provider.clone()));
     }
 
-    let assets = join_set
+    let mut assets = join_set
         .join_all()
         .await
         .into_iter()
         .collect::<Result<Vec<_>>>()?;
+
+    assets.sort_by(|a, b| a.symbol.cmp(&b.symbol));
 
     Ok(assets)
 }
@@ -129,10 +131,11 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
         Some(asset_addresses) => get_assets(asset_addresses, provider.clone()).await?,
         None => get_allowlisted_assets(chain_id, provider.clone()).await?,
     };
+
     let vault_impl = vault_impl.unwrap_or_default();
 
     let mut vault_configs = Vec::new();
-    for asset in assets {
+    for asset in &assets {
         println!("Creating vault for asset: {}", asset.symbol);
 
         let name = prompter::input("Please enter vault name", Some(asset.name.clone()), None)?;
@@ -182,12 +185,20 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
         .get_receipt()
         .await?;
 
+    let asset_map = assets
+        .into_iter()
+        .map(|asset| (asset.address, asset))
+        .collect::<HashMap<_, _>>();
+
     println!("Vault(s) deployed in tx {}", receipt.transaction_hash);
     for logs in receipt.inner.logs().chunks(4) {
         let log = logs[3].log_decode::<Core::DeployedVault>()?.inner.data;
         let vault = log.vault;
-        let asset = log.asset;
-        println!("Deployed vault {vault} for asset {asset}");
+        let asset = &asset_map[&log.asset];
+        println!(
+            "Vault: {vault}, Asset: {} ({})",
+            asset.symbol, asset.address
+        );
     }
 
     Ok(())
