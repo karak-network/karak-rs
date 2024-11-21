@@ -122,28 +122,27 @@ pub async fn process(
         } => {
             let core_instance = CoreInstance::new(profile.core_address, provider.clone());
 
-            let bn254_keystore = if bn254_keystore.is_none() {
-                prompt_keystore_type(
-                    Curve::Bn254,
-                    profile.clone(),
-                    profile_name,
-                    config_path.clone(),
-                )
-                .await?
-            } else {
-                match bn254_keystore.unwrap() {
-                    Keystore::Local { path: _ } => {
-                        let bn254_keypair_location = match bn254_keypair_location {
-                            Some(path) => path,
-                            None => prompt_keystore_path()?,
-                        };
+            let bn254_keystore = match bn254_keystore {
+                Some(Keystore::Local { path: _ }) => {
+                    let bn254_keypair_location = match bn254_keypair_location {
+                        Some(path) => path,
+                        None => prompt_keystore_path()?,
+                    };
 
-                        Keystore::Local {
-                            path: bn254_keypair_location,
-                        }
+                    Keystore::Local {
+                        path: bn254_keypair_location,
                     }
-                    // TODO: Update config to handle AWS secret and access keys
-                    Keystore::Aws { secret: s } => Keystore::Aws { secret: s },
+                }
+                // TODO: Update config to handle AWS secret and access keys
+                Some(Keystore::Aws { secret: s }) => Keystore::Aws { secret: s },
+                None => {
+                    prompt_keystore_type(
+                        Curve::Bn254,
+                        profile.clone(),
+                        profile_name,
+                        config_path.clone(),
+                    )
+                    .await?
                 }
             };
 
