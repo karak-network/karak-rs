@@ -54,12 +54,12 @@ pub fn profile_prompt(profile: Option<Profile>) -> eyre::Result<Profile> {
     });
     let core_address = prompter::input::<Address>("Enter Karak Core contract address", None, None)?;
 
-    return Ok(Profile {
+    Ok(Profile {
         chain,
         core_address,
         keystores: HashMap::new(),
         key_generation_folder,
-    });
+    })
 }
 
 fn prompt_chain(default: Option<Chain>) -> eyre::Result<Chain> {
