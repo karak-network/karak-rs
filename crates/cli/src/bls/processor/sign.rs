@@ -51,7 +51,8 @@ pub async fn process_sign(
     };
 
     let mut keypair: bn254::Keypair = {
-        match keystore {
+        // TODO: Temporary solution. Handle properly or remove bls from cli
+        match keystore.unwrap() {
             Keystore::Local { path: _ } => {
                 let local_keystore =
                     keystore::local::LocalEncryptedKeystore::new(PathBuf::from(keypair));
