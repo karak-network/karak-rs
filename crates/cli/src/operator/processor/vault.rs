@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+};
 
 use alloy::{
     primitives::{Address, Bytes, U256},
@@ -14,28 +17,13 @@ use karak_contracts::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinSet;
-use url::Url;
 
-use crate::prompter;
+use crate::{
+    model::{AllowlistedAsset, KarakBackendResult, Operator},
+    prompter,
+};
 
 use crate::util::parse_token_str;
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AllowlistedAsset {
-    pub asset: Address,
-    pub chain_id: u64,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct AllowlistedAssetsData {
-    pub data: Vec<AllowlistedAsset>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct AllowlistedAssets {
-    pub result: AllowlistedAssetsData,
-}
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct Asset {
@@ -97,14 +85,35 @@ async fn get_assets<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
 async fn get_allowlisted_assets<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
     chain_id: u64,
     provider: P,
+    operator_address: Address,
 ) -> Result<Vec<Asset>> {
-    let url = Url::parse("https://v2-backend.karak.network/trpc/getAllowlistedAssets")?;
-    let response = reqwest::get(url).await?.json::<AllowlistedAssets>().await?;
+    let response = reqwest::get("https://v2-backend.karak.network/trpc/getOperators")
+        .await?
+        .json::<KarakBackendResult<Vec<Operator>>>()
+        .await?;
+    let deployed_assets = response
+        .result
+        .data
+        .into_iter()
+        .find(|operator| operator.chain_id == chain_id && operator.address == operator_address)
+        .map(|operator| {
+            operator
+                .vaults
+                .into_iter()
+                .map(|vault| vault.asset_address)
+                .collect::<HashSet<_>>()
+        })
+        .unwrap_or_default();
+
+    let response = reqwest::get("https://v2-backend.karak.network/trpc/getAllowlistedAssets")
+        .await?
+        .json::<KarakBackendResult<Vec<AllowlistedAsset>>>()
+        .await?;
     let allowlisted_assets = response
         .result
         .data
-        .iter()
-        .filter(|asset| asset.chain_id == chain_id)
+        .into_iter()
+        .filter(|asset| asset.chain_id == chain_id && !deployed_assets.contains(&asset.asset))
         .map(|asset| asset.asset)
         .collect::<Vec<_>>();
 
@@ -128,7 +137,7 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     let chain_id = provider.get_chain_id().await?;
     let assets = match &asset_addresses {
         Some(asset_addresses) => get_assets(asset_addresses, provider.clone()).await?,
-        None => get_allowlisted_assets(chain_id, provider.clone()).await?,
+        None => get_allowlisted_assets(chain_id, provider.clone(), operator_address).await?,
     };
 
     let vault_impl = vault_impl.unwrap_or_default();
