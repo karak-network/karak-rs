@@ -8,8 +8,9 @@ use sign::process_sign;
 use verify::process_verify;
 
 use super::{Aggregate, BLS};
+use crate::config::models::Profile;
 
-pub async fn process(command: BLS) -> eyre::Result<()> {
+pub async fn process(command: BLS, _: Profile) -> eyre::Result<()> {
     match command {
         BLS::Sign {
             keypair_location,

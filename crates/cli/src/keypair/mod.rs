@@ -2,7 +2,7 @@ pub mod processor;
 
 use clap::{Args, Parser, Subcommand};
 
-use crate::shared::{Curve, Keystore};
+use crate::config::models::{Curve, Keystore};
 
 #[derive(Parser)]
 #[command(version, about = "Karak keypair CLI", long_about = None)]
@@ -12,43 +12,57 @@ pub struct KeypairRoot {
     pub subcommand: Keypair,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Keypair {
     /// Generate keypair
     Generate {
         #[command(flatten)]
-        keypair: KeypairArgs,
+        keypair: Option<KeypairArgs>,
 
         /// Curve to use for key generation
-        #[arg(short, long, value_enum)]
-        curve: Curve,
+        #[arg(long, value_enum)]
+        curve: Option<Curve>,
+    },
+    /// List keypairs
+    List {
+        /// Curve to list keypairs for
+        #[arg(long, value_enum)]
+        curve: Option<Curve>,
     },
     /// View public key
     Pubkey {
-        #[command(flatten)]
-        keypair_location: KeypairLocationArgs,
-        #[command(flatten)]
-        keypair: KeypairArgs,
+        /// Keystore name to use
+        #[arg(long)]
+        keystore_name: Option<String>,
+
+        /// Passphrase to decrypt keypair
+        #[arg(long)]
+        passphrase: Option<String>,
+
         /// Curve to use for key parsing
-        #[arg(short, long, value_enum)]
-        curve: Curve,
+        #[arg(long, value_enum)]
+        curve: Option<Curve>,
     },
 }
 
-#[derive(Args)]
+#[derive(Args, Debug)]
 pub struct KeypairArgs {
+    /// Keystore name
+    #[arg(long)]
+    pub keystore_name: Option<String>,
+
     /// Keystore to save the keypair
-    #[arg(short = 's', long)]
-    pub keystore: Keystore,
+    #[arg(long)]
+    pub keystore: Option<Keystore>,
 
     /// Passphrase to encrypt keypair
-    #[arg(short, long)]
+    #[arg(long)]
     pub passphrase: Option<String>,
 }
 
-#[derive(Args)]
+#[derive(Args, Debug)]
 pub struct KeypairLocationArgs {
     /// Keypair ID/path to retrieve
-    #[arg(short, long)]
-    pub keypair: String,
+    #[arg(long)]
+    pub keypair: Option<String>,
 }

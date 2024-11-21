@@ -1,30 +1,10 @@
 use base64::Engine;
 use clap::ValueEnum;
+use strum_macros::{Display, EnumString, FromRepr, VariantNames};
 use thiserror::Error;
 
-#[derive(Clone, ValueEnum, Debug)]
-pub enum Curve {
-    /// BN254 (also known as alt_bn128) is the curve used in Ethereum for BLS aggregation
-    Bn254,
-
-    /// secp256k1 is the curve used in Ethereum for ECDSA signatures
-    Secp256k1,
-}
-
-#[derive(Clone, ValueEnum, Debug)]
-pub enum Scheme {
-    /// Boneh–Lynn–Shacham (BLS) signature scheme using BN254
-    Bls,
-}
-
-#[derive(Clone, ValueEnum, Debug)]
-pub enum Keystore {
-    Local,
-    Aws,
-}
-
 // TODO: Move the encoding enum to the SDK crate
-#[derive(Clone, ValueEnum, Debug)]
+#[derive(Clone, ValueEnum, Debug, FromRepr, EnumString, Display, VariantNames)]
 pub enum Encoding {
     Utf8,
     Hex,

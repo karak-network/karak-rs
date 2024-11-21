@@ -1,3 +1,4 @@
+// TODO: Handle properly or remove bls from cli
 use std::path::PathBuf;
 
 use alloy::signers::k256::ecdsa::signature::SignerMut;
@@ -14,8 +15,8 @@ use sha3::{Digest, Keccak256};
 
 use crate::{
     bls::MessageArgs,
+    config::models::Keystore,
     keypair::{KeypairArgs, KeypairLocationArgs},
-    shared::Keystore,
 };
 
 pub async fn process_sign(
@@ -51,16 +52,17 @@ pub async fn process_sign(
     };
 
     let mut keypair: bn254::Keypair = {
-        match keystore {
-            Keystore::Local => {
+        // TODO: Temporary solution. Handle properly or remove bls from cli
+        match keystore.unwrap() {
+            Keystore::Local { path: _ } => {
                 let local_keystore =
-                    keystore::local::LocalEncryptedKeystore::new(PathBuf::from(keypair));
+                    keystore::local::LocalEncryptedKeystore::new(PathBuf::from(keypair.unwrap()));
                 local_keystore.retrieve(&passphrase)?
             }
-            Keystore::Aws => {
+            Keystore::Aws { secret: _ } => {
                 let config = aws_config::load_from_env().await;
                 let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
-                let secret_name = format!("{keypair}.bls");
+                let secret_name = format!("{:?}.bls", keypair.unwrap());
                 aws_keystore
                     .retrieve(&passphrase, &AwsKeystoreParams { secret_name })
                     .await?

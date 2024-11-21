@@ -19,6 +19,7 @@ aws-sdk-secretsmanager = "1.46.0"
 base64 = "0.22.1"
 bs58 = "0.5.1"
 clap = { version = "4.5.17", features = ["color", "derive"] }
+clap_complete = "4.5.36"
 color-eyre = "0.6.3"
 dialoguer = "0.11.0"
 dirs-next = "2.0.0"
@@ -30,11 +31,14 @@ rand = "0.8.5"
 rpassword = "7.3"
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = "0.9.34"
 sha3 = "0.10"
 signature = "2.2.0"
+strum = "0.26.3"
+strum_macros = "0.26.4"
 thiserror = "1.0.63"
 tokio = { workspace = true }
-url = "2.5.2"
+url = { version = "2.5.2", features = ["serde"] }
 
 [[bin]]
 name = "karak"
@@ -42,3 +46,4 @@ path = "src/main.rs"
 
 [features]
 testnet = []
+bls = []

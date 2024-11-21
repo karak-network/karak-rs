@@ -1,5 +1,3 @@
-use std::{path::PathBuf, str::FromStr};
-
 use alloy::signers::local::LocalSigner;
 use color_eyre::eyre;
 use karak_kms::{
@@ -11,69 +9,67 @@ use karak_kms::{
     },
 };
 
-use crate::{
-    keypair::{KeypairArgs, KeypairLocationArgs},
-    shared::{Curve, Keystore},
-};
+use crate::config::models::{Curve, Keystore, Profile};
+
+use super::prompt;
 
 pub async fn process_pubkey(
-    keypair_args: KeypairArgs,
-    keypair_location_args: KeypairLocationArgs,
-    curve: Curve,
+    profile: Profile,
+    keystore_name: Option<String>,
+    passphrase: Option<String>,
+    curve: Option<Curve>,
 ) -> eyre::Result<()> {
-    let KeypairArgs {
-        keystore,
-        passphrase,
-    } = keypair_args;
-    let KeypairLocationArgs { keypair } = keypair_location_args;
+    let curve = prompt::prompt_curve(curve)?;
+    let keystores = profile.keystores.get(&curve);
+    if keystores.is_none() {
+        return Err(eyre::eyre!("No keystores found for curve {}", curve));
+    }
+    // unwrapping safe since keystore none is checked above
+    let keystore_name = prompt::prompt_keystore_name(keystore_name, keystores.unwrap().clone())?;
+    let passphrase = prompt::prompt_passphrase(passphrase)?;
+
+    let keystore = keystores.unwrap().get(&keystore_name);
+    if keystore.is_none() {
+        return Err(eyre::eyre!("Keystore for name {} not found", keystore_name));
+    }
+    // unwrapping safe since keystore none is checked above
+    let keystore = keystore.unwrap();
 
     match curve {
-        Curve::Bn254 => {
-            let passphrase = match passphrase {
-                Some(passphrase) => passphrase,
-                None => rpassword::prompt_password("Enter keypair passphrase: ")?,
-            };
+        Curve::Bn254 => match keystore {
+            Keystore::Local { path: p } => {
+                let local_keystore = keystore::local::LocalEncryptedKeystore::new(p.to_owned());
 
-            match keystore {
-                Keystore::Local => {
-                    let local_keystore =
-                        keystore::local::LocalEncryptedKeystore::new(PathBuf::from(keypair));
+                let keypair: bn254::Keypair = local_keystore.retrieve(&passphrase)?;
 
-                    let keypair: bn254::Keypair = local_keystore.retrieve(&passphrase)?;
-
-                    println!("Public Key (retrieved from local keystore): {keypair}");
-                }
-                Keystore::Aws => {
-                    let config = aws_config::load_from_env().await;
-                    let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
-
-                    let secret_name = format!("{keypair}.bls");
-
-                    let keypair: bn254::Keypair = aws_keystore
-                        .retrieve(&passphrase, &AwsKeystoreParams { secret_name })
-                        .await?;
-
-                    println!("Public Key (retrieved from AWS Secrets Manager): {keypair}");
-                }
+                println!("Public Key (retrieved from local keystore): {keypair}");
             }
-        }
-        Curve::Secp256k1 => {
-            let passphrase = match passphrase {
-                Some(passphrase) => passphrase,
-                None => rpassword::prompt_password("Enter keypair passphrase: ")?,
-            };
-            match keystore {
-                Keystore::Local => {
-                    let keypath = PathBuf::from_str(&keypair)?;
-                    let private_key = LocalSigner::decrypt_keystore(keypath, passphrase)?;
-                    println!(
-                        "Address (retrieved from local keystore): {}",
-                        private_key.address()
-                    );
-                }
-                Keystore::Aws => todo!(),
+            Keystore::Aws { secret: s } => {
+                let config = aws_config::load_from_env().await;
+                let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
+
+                let keypair: bn254::Keypair = aws_keystore
+                    .retrieve(
+                        &passphrase,
+                        &AwsKeystoreParams {
+                            secret_name: s.to_owned(),
+                        },
+                    )
+                    .await?;
+
+                println!("Public Key (retrieved from AWS Secrets Manager): {keypair}");
             }
-        }
+        },
+        Curve::Secp256k1 => match keystore {
+            Keystore::Local { path: p } => {
+                let private_key = LocalSigner::decrypt_keystore(p, passphrase)?;
+                println!(
+                    "Address (retrieved from local keystore): {}",
+                    private_key.address()
+                );
+            }
+            Keystore::Aws { secret: _ } => todo!(),
+        },
     }
     Ok(())
 }

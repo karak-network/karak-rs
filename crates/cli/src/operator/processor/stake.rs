@@ -9,8 +9,9 @@ use karak_contracts::{
     core::contract::Operator::{QueuedStakeUpdate, StakeUpdateRequest},
     Core::{self, CoreInstance},
 };
+use strum_macros::{Display, EnumString, FromRepr, VariantNames};
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone, ValueEnum, EnumString, FromRepr, VariantNames, Display)]
 pub enum StakeUpdateType {
     Stake,
     Unstake,
