@@ -8,7 +8,7 @@ use alloy::{
     providers::Provider,
     transports::{http::reqwest, Transport},
 };
-use eyre::Result;
+use eyre::{eyre, Result};
 use karak_contracts::{
     core::contract::VaultLib,
     erc20::mintable::ERC20Mintable::ERC20MintableInstance,
@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use tokio::task::JoinSet;
 
 use crate::{
-    model::{AllowlistedAsset, KarakBackendResult, Operator},
+    model::{AllowlistedAsset, KarakBackendResult},
     prompter,
 };
 
@@ -82,28 +82,50 @@ async fn get_assets<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
     Ok(assets)
 }
 
+async fn get_deployed_assets_for_operator<
+    T: Transport + Clone,
+    P: Provider<T> + Clone + 'static,
+>(
+    operator_address: Address,
+    core_instance: CoreInstance<T, P>,
+    provider: P,
+) -> Result<HashSet<Address>> {
+    let deployed_vaults = core_instance
+        .getOperatorVaults(operator_address)
+        .call()
+        .await?
+        .vaults;
+
+    let mut join_set = JoinSet::new();
+    for vault in deployed_vaults {
+        let provider = provider.clone();
+        join_set.spawn(async move {
+            let vault_instance = VaultInstance::new(vault, provider);
+            vault_instance
+                .asset()
+                .call()
+                .await
+                .map(|vault| vault._0)
+                .map_err(|e| eyre!(e))
+        });
+    }
+    let deployed_assets = join_set
+        .join_all()
+        .await
+        .into_iter()
+        .collect::<Result<HashSet<Address>>>()?;
+
+    Ok(deployed_assets)
+}
+
 async fn get_allowlisted_assets<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
     chain_id: u64,
-    provider: P,
     operator_address: Address,
+    core_instance: CoreInstance<T, P>,
+    provider: P,
 ) -> Result<Vec<Asset>> {
-    let response = reqwest::get("https://v2-backend.karak.network/trpc/getOperators")
-        .await?
-        .json::<KarakBackendResult<Vec<Operator>>>()
-        .await?;
-    let deployed_assets = response
-        .result
-        .data
-        .into_iter()
-        .find(|operator| operator.chain_id == chain_id && operator.address == operator_address)
-        .map(|operator| {
-            operator
-                .vaults
-                .into_iter()
-                .map(|vault| vault.asset_address)
-                .collect::<HashSet<_>>()
-        })
-        .unwrap_or_default();
+    let deployed_assets =
+        get_deployed_assets_for_operator(operator_address, core_instance, provider.clone()).await?;
 
     let response = reqwest::get("https://v2-backend.karak.network/trpc/getAllowlistedAssets")
         .await?
@@ -119,12 +141,7 @@ async fn get_allowlisted_assets<T: Transport + Clone, P: Provider<T> + Clone + '
 
     let assets = get_assets(&allowlisted_assets, provider).await?;
 
-    let selection = prompter::multi_select("Select assets", &assets);
-
-    Ok(selection?
-        .into_iter()
-        .map(|index| assets[index].clone())
-        .collect::<Vec<_>>())
+    Ok(assets)
 }
 
 pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
@@ -137,8 +154,30 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     let chain_id = provider.get_chain_id().await?;
     let assets = match &asset_addresses {
         Some(asset_addresses) => get_assets(asset_addresses, provider.clone()).await?,
-        None => get_allowlisted_assets(chain_id, provider.clone(), operator_address).await?,
+        None => {
+            let assets = get_allowlisted_assets(
+                chain_id,
+                operator_address,
+                core_instance.clone(),
+                provider.clone(),
+            )
+            .await?;
+            if assets.is_empty() {
+                assets
+            } else {
+                let selection = prompter::multi_select("Select assets", &assets)?;
+                selection
+                    .into_iter()
+                    .map(|index| assets[index].clone())
+                    .collect::<Vec<_>>()
+            }
+        }
     };
+
+    if assets.is_empty() {
+        println!("No assets to deploy");
+        return Ok(());
+    }
 
     let vault_impl = vault_impl.unwrap_or_default();
 
