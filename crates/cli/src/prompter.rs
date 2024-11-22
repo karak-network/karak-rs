@@ -79,6 +79,7 @@ pub fn password(prompt: &str) -> eyre::Result<String> {
 }
 
 pub fn multi_select<T: ToString>(prompt: &str, items: &[T]) -> eyre::Result<Vec<usize>> {
+    println!("(Use <space> to select, <enter> to confirm)");
     MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt(prompt)
         .items(items)
