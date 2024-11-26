@@ -74,6 +74,7 @@ async fn get_assets<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
     let mut join_set = JoinSet::new();
     for asset_address in asset_addresses {
         if deployed_assets.contains(asset_address) {
+            println!("Skipping already deployed asset: {asset_address}");
             continue;
         }
         join_set.spawn(get_asset(*asset_address, provider.clone()));
