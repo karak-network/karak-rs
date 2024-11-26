@@ -12,6 +12,8 @@ use VaultLib::Config;
 
 use crate::error::DecodeError;
 
+use super::library;
+
 sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
@@ -152,29 +154,40 @@ impl Display for Core::CoreErrors {
 #[derive(thiserror::Error, Debug)]
 pub enum CoreError<E: std::fmt::Debug> {
     #[error("Core error: {0}")]
-    Revert(Core::CoreErrors),
+    Core(Core::CoreErrors),
+    #[error("Operator error: {0}")]
+    Operator(library::operator::Operator::OperatorErrors),
     #[error(transparent)]
     Inner(E),
 }
 
 impl<E: std::fmt::Debug> From<Core::CoreErrors> for CoreError<E> {
     fn from(error: Core::CoreErrors) -> Self {
-        CoreError::Revert(error)
+        CoreError::Core(error)
+    }
+}
+
+impl DecodeError<ErrorPayload> for Core::CoreErrors {
+    fn decode_error(error: &ErrorPayload) -> Option<Core::CoreErrors> {
+        error.as_decoded_error::<Core::CoreErrors>(true)
     }
 }
 
 impl From<ErrorPayload> for CoreError<ErrorPayload> {
     fn from(value: ErrorPayload) -> Self {
-        match value.as_decoded_error::<Core::CoreErrors>(true) {
-            Some(error) => CoreError::Revert(error),
-            None => CoreError::Inner(value),
+        match Core::CoreErrors::decode_error(&value) {
+            Some(error) => CoreError::Core(error),
+            None => match library::operator::Operator::OperatorErrors::decode_error(&value) {
+                Some(error) => CoreError::Operator(error),
+                None => CoreError::Inner(value),
+            },
         }
     }
 }
 
-impl DecodeError<Core::CoreErrors> for TransportError {
-    fn decode_error(&self) -> Option<Core::CoreErrors> {
-        match self {
+impl DecodeError<TransportError> for Core::CoreErrors {
+    fn decode_error(error: &TransportError) -> Option<Core::CoreErrors> {
+        match error {
             RpcError::ErrorResp(error) => error.as_decoded_error::<Core::CoreErrors>(true),
             _ => None,
         }
@@ -183,18 +196,21 @@ impl DecodeError<Core::CoreErrors> for TransportError {
 
 impl From<TransportError> for CoreError<TransportError> {
     fn from(value: TransportError) -> Self {
-        match value.decode_error() {
-            Some(error) => CoreError::Revert(error),
-            _ => CoreError::Inner(value),
+        match Core::CoreErrors::decode_error(&value) {
+            Some(error) => CoreError::Core(error),
+            None => match library::operator::Operator::OperatorErrors::decode_error(&value) {
+                Some(error) => CoreError::Operator(error),
+                None => CoreError::Inner(value),
+            },
         }
     }
 }
 
-impl DecodeError<Core::CoreErrors> for alloy::contract::Error {
-    fn decode_error(&self) -> Option<Core::CoreErrors> {
-        match self {
+impl DecodeError<alloy::contract::Error> for Core::CoreErrors {
+    fn decode_error(error: &alloy::contract::Error) -> Option<Core::CoreErrors> {
+        match error {
             alloy::contract::Error::TransportError(transport_error) => {
-                transport_error.decode_error()
+                Core::CoreErrors::decode_error(transport_error)
             }
             _ => None,
         }
@@ -203,18 +219,21 @@ impl DecodeError<Core::CoreErrors> for alloy::contract::Error {
 
 impl From<alloy::contract::Error> for CoreError<alloy::contract::Error> {
     fn from(value: alloy::contract::Error) -> Self {
-        match value.decode_error() {
-            Some(error) => CoreError::Revert(error),
-            _ => CoreError::Inner(value),
+        match Core::CoreErrors::decode_error(&value) {
+            Some(error) => CoreError::Core(error),
+            None => match library::operator::Operator::OperatorErrors::decode_error(&value) {
+                Some(error) => CoreError::Operator(error),
+                None => CoreError::Inner(value),
+            },
         }
     }
 }
 
-impl DecodeError<Core::CoreErrors> for PendingTransactionError {
-    fn decode_error(&self) -> Option<Core::CoreErrors> {
-        match self {
+impl DecodeError<PendingTransactionError> for Core::CoreErrors {
+    fn decode_error(error: &PendingTransactionError) -> Option<Core::CoreErrors> {
+        match error {
             PendingTransactionError::TransportError(transport_error) => {
-                transport_error.decode_error()
+                Core::CoreErrors::decode_error(transport_error)
             }
             _ => None,
         }
@@ -223,9 +242,12 @@ impl DecodeError<Core::CoreErrors> for PendingTransactionError {
 
 impl From<PendingTransactionError> for CoreError<PendingTransactionError> {
     fn from(value: PendingTransactionError) -> Self {
-        match value.decode_error() {
-            Some(error) => CoreError::Revert(error),
-            _ => CoreError::Inner(value),
+        match Core::CoreErrors::decode_error(&value) {
+            Some(error) => CoreError::Core(error),
+            None => match library::operator::Operator::OperatorErrors::decode_error(&value) {
+                Some(error) => CoreError::Operator(error),
+                None => CoreError::Inner(value),
+            },
         }
     }
 }

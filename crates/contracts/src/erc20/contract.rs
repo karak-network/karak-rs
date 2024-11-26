@@ -67,29 +67,35 @@ impl std::fmt::Display for ERC20::ERC20Errors {
 #[derive(Debug, thiserror::Error)]
 pub enum ERC20Error<E: std::fmt::Debug> {
     #[error("ERC20 error: {0}")]
-    Revert(ERC20::ERC20Errors),
+    ERC20(ERC20::ERC20Errors),
     #[error(transparent)]
     Inner(E),
 }
 
 impl<E: std::fmt::Debug> From<ERC20::ERC20Errors> for ERC20Error<E> {
     fn from(error: ERC20::ERC20Errors) -> Self {
-        ERC20Error::Revert(error)
+        ERC20Error::ERC20(error)
+    }
+}
+
+impl DecodeError<ErrorPayload> for ERC20::ERC20Errors {
+    fn decode_error(error: &ErrorPayload) -> Option<ERC20::ERC20Errors> {
+        error.as_decoded_error::<ERC20::ERC20Errors>(true)
     }
 }
 
 impl From<ErrorPayload> for ERC20Error<ErrorPayload> {
     fn from(value: ErrorPayload) -> Self {
         match value.as_decoded_error::<ERC20::ERC20Errors>(true) {
-            Some(error) => ERC20Error::Revert(error),
+            Some(error) => ERC20Error::ERC20(error),
             None => ERC20Error::Inner(value),
         }
     }
 }
 
-impl DecodeError<ERC20::ERC20Errors> for TransportError {
-    fn decode_error(&self) -> Option<ERC20::ERC20Errors> {
-        match self {
+impl DecodeError<TransportError> for ERC20::ERC20Errors {
+    fn decode_error(error: &TransportError) -> Option<ERC20::ERC20Errors> {
+        match error {
             RpcError::ErrorResp(error) => error.as_decoded_error::<ERC20::ERC20Errors>(true),
             _ => None,
         }
@@ -98,18 +104,18 @@ impl DecodeError<ERC20::ERC20Errors> for TransportError {
 
 impl From<TransportError> for ERC20Error<TransportError> {
     fn from(value: TransportError) -> Self {
-        match value.decode_error() {
-            Some(error) => ERC20Error::Revert(error),
+        match ERC20::ERC20Errors::decode_error(&value) {
+            Some(error) => ERC20Error::ERC20(error),
             _ => ERC20Error::Inner(value),
         }
     }
 }
 
-impl DecodeError<ERC20::ERC20Errors> for alloy::contract::Error {
-    fn decode_error(&self) -> Option<ERC20::ERC20Errors> {
-        match self {
+impl DecodeError<alloy::contract::Error> for ERC20::ERC20Errors {
+    fn decode_error(error: &alloy::contract::Error) -> Option<ERC20::ERC20Errors> {
+        match error {
             alloy::contract::Error::TransportError(transport_error) => {
-                transport_error.decode_error()
+                ERC20::ERC20Errors::decode_error(transport_error)
             }
             _ => None,
         }
@@ -118,18 +124,18 @@ impl DecodeError<ERC20::ERC20Errors> for alloy::contract::Error {
 
 impl From<alloy::contract::Error> for ERC20Error<alloy::contract::Error> {
     fn from(value: alloy::contract::Error) -> Self {
-        match value.decode_error() {
-            Some(error) => ERC20Error::Revert(error),
+        match ERC20::ERC20Errors::decode_error(&value) {
+            Some(error) => ERC20Error::ERC20(error),
             _ => ERC20Error::Inner(value),
         }
     }
 }
 
-impl DecodeError<ERC20::ERC20Errors> for PendingTransactionError {
-    fn decode_error(&self) -> Option<ERC20::ERC20Errors> {
-        match self {
+impl DecodeError<PendingTransactionError> for ERC20::ERC20Errors {
+    fn decode_error(error: &PendingTransactionError) -> Option<ERC20::ERC20Errors> {
+        match error {
             PendingTransactionError::TransportError(transport_error) => {
-                transport_error.decode_error()
+                ERC20::ERC20Errors::decode_error(transport_error)
             }
             _ => None,
         }
@@ -138,8 +144,8 @@ impl DecodeError<ERC20::ERC20Errors> for PendingTransactionError {
 
 impl From<PendingTransactionError> for ERC20Error<PendingTransactionError> {
     fn from(value: PendingTransactionError) -> Self {
-        match value.decode_error() {
-            Some(error) => ERC20Error::Revert(error),
+        match ERC20::ERC20Errors::decode_error(&value) {
+            Some(error) => ERC20Error::ERC20(error),
             _ => ERC20Error::Inner(value),
         }
     }

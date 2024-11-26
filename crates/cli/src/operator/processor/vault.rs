@@ -10,7 +10,7 @@ use alloy::{
 };
 use eyre::{eyre, Result};
 use karak_contracts::{
-    core::contract::VaultLib,
+    core::contract::{CoreError, VaultLib},
     erc20::{
         contract::{ERC20Error, ERC20::ERC20Instance},
         interface::IERC20Metadata::IERC20MetadataInstance,
@@ -251,10 +251,10 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
         .deployVaults(vault_configs, vault_impl)
         .send()
         .await
-        .map_err(VaultError::from)?
+        .map_err(CoreError::from)?
         .get_receipt()
         .await
-        .map_err(VaultError::from)?;
+        .map_err(CoreError::from)?;
 
     let asset_map = assets
         .into_iter()
