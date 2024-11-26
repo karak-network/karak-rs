@@ -64,10 +64,19 @@ async fn get_asset<T: Transport + Clone, P: Provider<T>>(
 
 async fn get_assets<T: Transport + Clone, P: Provider<T> + Clone + 'static>(
     asset_addresses: &[Address],
+    operator_address: Address,
+    core_instance: CoreInstance<T, P>,
     provider: P,
 ) -> Result<Vec<Asset>> {
+    let deployed_assets =
+        get_deployed_assets_for_operator(operator_address, core_instance, provider.clone()).await?;
+
     let mut join_set = JoinSet::new();
     for asset_address in asset_addresses {
+        if deployed_assets.contains(asset_address) {
+            println!("Skipping already deployed asset: {asset_address}");
+            continue;
+        }
         join_set.spawn(get_asset(*asset_address, provider.clone()));
     }
 
@@ -124,9 +133,6 @@ async fn get_allowlisted_assets<T: Transport + Clone, P: Provider<T> + Clone + '
     core_instance: CoreInstance<T, P>,
     provider: P,
 ) -> Result<Vec<Asset>> {
-    let deployed_assets =
-        get_deployed_assets_for_operator(operator_address, core_instance, provider.clone()).await?;
-
     let response = reqwest::get("https://v2-backend.karak.network/trpc/getAllowlistedAssets")
         .await?
         .json::<KarakBackendResult<Vec<AllowlistedAsset>>>()
@@ -135,11 +141,17 @@ async fn get_allowlisted_assets<T: Transport + Clone, P: Provider<T> + Clone + '
         .result
         .data
         .into_iter()
-        .filter(|asset| asset.chain_id == chain_id && !deployed_assets.contains(&asset.asset))
+        .filter(|asset| asset.chain_id == chain_id)
         .map(|asset| asset.asset)
         .collect::<Vec<_>>();
 
-    let assets = get_assets(&allowlisted_assets, provider).await?;
+    let assets = get_assets(
+        &allowlisted_assets,
+        operator_address,
+        core_instance,
+        provider,
+    )
+    .await?;
 
     Ok(assets)
 }
@@ -152,8 +164,17 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     provider: P,
 ) -> Result<()> {
     let chain_id = provider.get_chain_id().await?;
+
     let assets = match &asset_addresses {
-        Some(asset_addresses) => get_assets(asset_addresses, provider.clone()).await?,
+        Some(asset_addresses) => {
+            get_assets(
+                asset_addresses,
+                operator_address,
+                core_instance.clone(),
+                provider.clone(),
+            )
+            .await?
+        }
         None => {
             let assets = get_allowlisted_assets(
                 chain_id,
