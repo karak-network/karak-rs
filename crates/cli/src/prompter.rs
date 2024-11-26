@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use color_eyre::eyre;
 use color_eyre::owo_colors::OwoColorize;
-use dialoguer::{theme::ColorfulTheme, Input, MultiSelect, Password, Select};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Password, Select};
 use strum::VariantNames;
 
 pub fn select_enum<T: VariantNames + ToString>(
@@ -79,6 +79,7 @@ pub fn password(prompt: &str) -> eyre::Result<String> {
 }
 
 pub fn multi_select<T: ToString>(prompt: &str, items: &[T]) -> eyre::Result<Vec<usize>> {
+    println!("(Use <space> to select, <enter> to confirm)");
     MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt(prompt)
         .items(items)
@@ -94,4 +95,14 @@ fn find_default_index<T: ToString>(default: Option<&T>, variants: &[&str]) -> us
                 .position(|&variant| variant == d.to_string())
         })
         .unwrap_or(0)
+}
+
+pub fn confirm<T: Into<String>>(prompt: T, default: Option<bool>) -> eyre::Result<bool> {
+    let theme = ColorfulTheme::default();
+    let confirm = Confirm::with_theme(&theme).with_prompt(prompt);
+    let confirm = match default {
+        Some(default) => confirm.default(default),
+        None => confirm,
+    };
+    Ok(confirm.interact()?)
 }
