@@ -76,16 +76,16 @@ impl std::fmt::Display for ERC20Mintable::ERC20MintableErrors {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error<E: std::fmt::Debug> {
+pub enum ERC20MintableError<E: std::fmt::Debug> {
     #[error("ERC20Mintable error: {0}")]
-    ERC20MintableError(ERC20Mintable::ERC20MintableErrors),
+    Revert(ERC20Mintable::ERC20MintableErrors),
     #[error(transparent)]
     Inner(E),
 }
 
-impl<E: std::fmt::Debug> From<ERC20Mintable::ERC20MintableErrors> for Error<E> {
+impl<E: std::fmt::Debug> From<ERC20Mintable::ERC20MintableErrors> for ERC20MintableError<E> {
     fn from(err: ERC20Mintable::ERC20MintableErrors) -> Self {
-        Error::ERC20MintableError(err)
+        ERC20MintableError::Revert(err)
     }
 }
 
@@ -95,11 +95,11 @@ impl DecodeError<ERC20Mintable::ERC20MintableErrors> for ErrorPayload {
     }
 }
 
-impl From<ErrorPayload> for Error<ErrorPayload> {
+impl From<ErrorPayload> for ERC20MintableError<ErrorPayload> {
     fn from(err: ErrorPayload) -> Self {
         match err.decode_error() {
-            Some(err) => Error::ERC20MintableError(err),
-            None => Error::Inner(err),
+            Some(err) => ERC20MintableError::Revert(err),
+            None => ERC20MintableError::Inner(err),
         }
     }
 }
@@ -113,11 +113,11 @@ impl DecodeError<ERC20Mintable::ERC20MintableErrors> for TransportError {
     }
 }
 
-impl From<TransportError> for Error<TransportError> {
+impl From<TransportError> for ERC20MintableError<TransportError> {
     fn from(err: TransportError) -> Self {
         match err.decode_error() {
-            Some(err) => Error::ERC20MintableError(err),
-            None => Error::Inner(err),
+            Some(err) => ERC20MintableError::Revert(err),
+            None => ERC20MintableError::Inner(err),
         }
     }
 }
@@ -131,11 +131,11 @@ impl DecodeError<ERC20Mintable::ERC20MintableErrors> for alloy::contract::Error 
     }
 }
 
-impl From<alloy::contract::Error> for Error<alloy::contract::Error> {
+impl From<alloy::contract::Error> for ERC20MintableError<alloy::contract::Error> {
     fn from(value: alloy::contract::Error) -> Self {
         match value.decode_error() {
-            Some(err) => Error::ERC20MintableError(err),
-            None => Error::Inner(value),
+            Some(err) => ERC20MintableError::Revert(err),
+            None => ERC20MintableError::Inner(value),
         }
     }
 }
@@ -149,11 +149,11 @@ impl DecodeError<ERC20Mintable::ERC20MintableErrors> for PendingTransactionError
     }
 }
 
-impl From<PendingTransactionError> for Error<PendingTransactionError> {
+impl From<PendingTransactionError> for ERC20MintableError<PendingTransactionError> {
     fn from(value: PendingTransactionError) -> Self {
         match value.decode_error() {
-            Some(err) => Error::ERC20MintableError(err),
-            None => Error::Inner(value),
+            Some(err) => ERC20MintableError::Revert(err),
+            None => ERC20MintableError::Inner(value),
         }
     }
 }

@@ -3110,7 +3110,7 @@ dependencies = [
  "signature",
  "strum",
  "strum_macros",
- "thiserror",
+ "thiserror 1.0.63",
  "tokio",
  "url",
 ]

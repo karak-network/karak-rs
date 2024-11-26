@@ -11,8 +11,11 @@ use alloy::{
 use eyre::{eyre, Result};
 use karak_contracts::{
     core::contract::VaultLib,
-    erc20::mintable::ERC20Mintable::ERC20MintableInstance,
-    vault::Vault::VaultInstance,
+    erc20::{
+        contract::{ERC20Error, ERC20::ERC20Instance},
+        interface::IERC20Metadata::IERC20MetadataInstance,
+    },
+    vault::{Vault::VaultInstance, VaultError},
     Core::{self, CoreInstance},
 };
 use serde::{Deserialize, Serialize};
@@ -49,7 +52,7 @@ async fn get_asset<T: Transport + Clone, P: Provider<T>>(
     asset_address: Address,
     provider: P,
 ) -> Result<Asset> {
-    let erc20_instance = ERC20MintableInstance::new(asset_address, provider);
+    let erc20_instance = IERC20MetadataInstance::new(asset_address, provider);
     let symbol = erc20_instance.symbol().call_raw().await?;
     let name = erc20_instance.name().call_raw().await?;
     let decimals = erc20_instance.decimals().call().await?._0;
@@ -248,10 +251,10 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
         .deployVaults(vault_configs, vault_impl)
         .send()
         .await
-        .map_err(karak_contracts::core::contract::Error::from)?
+        .map_err(VaultError::from)?
         .get_receipt()
         .await
-        .map_err(karak_contracts::core::contract::Error::from)?;
+        .map_err(VaultError::from)?;
 
     let asset_map = assets
         .into_iter()
@@ -277,17 +280,17 @@ pub async fn deposit_to_vault<T: Transport + Clone, P: Provider<T>>(
     operator_address: Address,
     vault_address: Address,
     vault_instance: VaultInstance<T, P>,
-    erc20_instance: ERC20MintableInstance<T, P>,
+    erc20_instance: ERC20Instance<T, P>,
 ) -> Result<()> {
     let symbol = erc20_instance.symbol().call().await?._0;
     let receipt = erc20_instance
         .approve(vault_address, amount)
         .send()
         .await
-        .map_err(karak_contracts::erc20::mintable::Error::from)?
+        .map_err(ERC20Error::from)?
         .get_receipt()
         .await
-        .map_err(karak_contracts::erc20::mintable::Error::from)?;
+        .map_err(ERC20Error::from)?;
 
     println!(
         "Approved spending {} {} in tx {}",
@@ -298,10 +301,10 @@ pub async fn deposit_to_vault<T: Transport + Clone, P: Provider<T>>(
         .deposit_0(amount, operator_address)
         .send()
         .await
-        .map_err(karak_contracts::vault::Error::from)?
+        .map_err(VaultError::from)?
         .get_receipt()
         .await
-        .map_err(karak_contracts::vault::Error::from)?;
+        .map_err(VaultError::from)?;
 
     println!(
         "Deposited {} {} to vault {} in tx {}",

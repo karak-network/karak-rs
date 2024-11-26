@@ -150,24 +150,24 @@ impl Display for Core::CoreErrors {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error<E: std::fmt::Debug> {
+pub enum CoreError<E: std::fmt::Debug> {
     #[error("Core error: {0}")]
-    CoreError(Core::CoreErrors),
+    Revert(Core::CoreErrors),
     #[error(transparent)]
     Inner(E),
 }
 
-impl<E: std::fmt::Debug> From<Core::CoreErrors> for Error<E> {
+impl<E: std::fmt::Debug> From<Core::CoreErrors> for CoreError<E> {
     fn from(error: Core::CoreErrors) -> Self {
-        Error::CoreError(error)
+        CoreError::Revert(error)
     }
 }
 
-impl From<ErrorPayload> for Error<ErrorPayload> {
+impl From<ErrorPayload> for CoreError<ErrorPayload> {
     fn from(value: ErrorPayload) -> Self {
         match value.as_decoded_error::<Core::CoreErrors>(true) {
-            Some(error) => Error::CoreError(error),
-            None => Error::Inner(value),
+            Some(error) => CoreError::Revert(error),
+            None => CoreError::Inner(value),
         }
     }
 }
@@ -181,11 +181,11 @@ impl DecodeError<Core::CoreErrors> for TransportError {
     }
 }
 
-impl From<TransportError> for Error<TransportError> {
+impl From<TransportError> for CoreError<TransportError> {
     fn from(value: TransportError) -> Self {
         match value.decode_error() {
-            Some(error) => Error::CoreError(error),
-            _ => Error::Inner(value),
+            Some(error) => CoreError::Revert(error),
+            _ => CoreError::Inner(value),
         }
     }
 }
@@ -201,11 +201,11 @@ impl DecodeError<Core::CoreErrors> for alloy::contract::Error {
     }
 }
 
-impl From<alloy::contract::Error> for Error<alloy::contract::Error> {
+impl From<alloy::contract::Error> for CoreError<alloy::contract::Error> {
     fn from(value: alloy::contract::Error) -> Self {
         match value.decode_error() {
-            Some(error) => Error::CoreError(error),
-            _ => Error::Inner(value),
+            Some(error) => CoreError::Revert(error),
+            _ => CoreError::Inner(value),
         }
     }
 }
@@ -221,11 +221,11 @@ impl DecodeError<Core::CoreErrors> for PendingTransactionError {
     }
 }
 
-impl From<PendingTransactionError> for Error<PendingTransactionError> {
+impl From<PendingTransactionError> for CoreError<PendingTransactionError> {
     fn from(value: PendingTransactionError) -> Self {
         match value.decode_error() {
-            Some(error) => Error::CoreError(error),
-            _ => Error::Inner(value),
+            Some(error) => CoreError::Revert(error),
+            _ => CoreError::Inner(value),
         }
     }
 }

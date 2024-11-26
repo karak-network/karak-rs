@@ -202,9 +202,9 @@ impl std::fmt::Display for Vault::VaultErrors {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error<E: std::fmt::Debug> {
+pub enum VaultError<E: std::fmt::Debug> {
     #[error("Vault error: {0}")]
-    VaultError(Vault::VaultErrors),
+    Revert(Vault::VaultErrors),
     #[error(transparent)]
     Inner(E),
 }
@@ -224,11 +224,11 @@ impl DecodeError<Vault::VaultErrors> for TransportError {
     }
 }
 
-impl From<ErrorPayload> for Error<ErrorPayload> {
+impl From<ErrorPayload> for VaultError<ErrorPayload> {
     fn from(err: ErrorPayload) -> Self {
         match err.decode_error() {
-            Some(err) => Error::VaultError(err),
-            None => Error::Inner(err),
+            Some(err) => VaultError::Revert(err),
+            None => VaultError::Inner(err),
         }
     }
 }
@@ -242,11 +242,11 @@ impl DecodeError<Vault::VaultErrors> for alloy::contract::Error {
     }
 }
 
-impl From<alloy::contract::Error> for Error<alloy::contract::Error> {
+impl From<alloy::contract::Error> for VaultError<alloy::contract::Error> {
     fn from(err: alloy::contract::Error) -> Self {
         match err.decode_error() {
-            Some(err) => Error::VaultError(err),
-            None => Error::Inner(err),
+            Some(err) => VaultError::Revert(err),
+            None => VaultError::Inner(err),
         }
     }
 }
@@ -260,11 +260,11 @@ impl DecodeError<Vault::VaultErrors> for PendingTransactionError {
     }
 }
 
-impl From<PendingTransactionError> for Error<PendingTransactionError> {
+impl From<PendingTransactionError> for VaultError<PendingTransactionError> {
     fn from(err: PendingTransactionError) -> Self {
         match err.decode_error() {
-            Some(err) => Error::VaultError(err),
-            None => Error::Inner(err),
+            Some(err) => VaultError::Revert(err),
+            None => VaultError::Inner(err),
         }
     }
 }
