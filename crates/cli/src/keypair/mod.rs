@@ -20,13 +20,13 @@ pub enum Keypair {
         keypair: Option<KeypairArgs>,
 
         /// Curve to use for key generation
-        #[arg(long, value_enum)]
+        #[arg(long, value_parser = crate::clap_enum_variants!(Curve))]
         curve: Option<Curve>,
     },
     /// List keypairs
     List {
         /// Curve to list keypairs for
-        #[arg(long, value_enum)]
+        #[arg(long, value_parser = crate::clap_enum_variants!(Curve))]
         curve: Option<Curve>,
     },
     /// View public key
@@ -40,7 +40,7 @@ pub enum Keypair {
         passphrase: Option<String>,
 
         /// Curve to use for key parsing
-        #[arg(long, value_enum)]
+        #[arg(long, value_parser = crate::clap_enum_variants!(Curve))]
         curve: Option<Curve>,
     },
 }
@@ -52,7 +52,7 @@ pub struct KeypairArgs {
     pub keystore_name: Option<String>,
 
     /// Keystore to save the keypair
-    #[arg(long)]
+    #[arg(long, value_parser = crate::clap_enum_variants!(Keystore))]
     pub keystore: Option<Keystore>,
 
     /// Passphrase to encrypt keypair

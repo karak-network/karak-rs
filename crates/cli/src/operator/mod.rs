@@ -64,7 +64,7 @@ pub enum OperatorCommand {
         #[arg(long)]
         bn254_keypair_location: Option<PathBuf>,
 
-        #[arg(long)]
+        #[arg(long, value_parser = crate::clap_enum_variants!(Keystore))]
         bn254_keystore: Option<Keystore>,
 
         #[arg(long)]
@@ -106,7 +106,7 @@ pub struct OperatorArgs {
     #[command(subcommand)]
     pub command: OperatorCommand,
 
-    #[arg(long, global(true))]
+    #[arg(long, global(true), value_parser = crate::clap_enum_variants!(Keystore))]
     secp256k1_keystore_type: Option<Keystore>,
 
     #[arg(long, required_if_eq("secp256k1_keystore_type", "local"), global(true))]

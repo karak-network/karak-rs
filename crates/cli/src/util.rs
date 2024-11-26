@@ -15,3 +15,12 @@ pub fn parse_token_str(input: &Bytes) -> Result<String> {
         Err(eyre::eyre!("Failed to parse token string"))
     }
 }
+
+#[macro_export]
+macro_rules! clap_enum_variants {
+    ($e: ty) => {{
+        use clap::builder::TypedValueParser;
+        use strum::VariantNames;
+        clap::builder::PossibleValuesParser::new(<$e>::VARIANTS).map(|s| s.parse::<$e>().unwrap())
+    }};
+}
