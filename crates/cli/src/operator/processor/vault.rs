@@ -3,7 +3,6 @@ use alloy::{
     providers::Provider,
     transports::{http::reqwest, Transport},
 };
-use dialoguer::{theme::ColorfulTheme, Confirm};
 use eyre::Result;
 use karak_contracts::{
     core::contract::VaultLib,
@@ -111,9 +110,7 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     println!("Deploying the following vaults:");
     println!("{}", serde_json::to_string_pretty(&vault_configs)?);
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt("Do you want to proceed with the deployment?")
-        .interact()?;
+    let confirm = prompter::confirm("Do you want to proceed with the deployment?", None)?;
     if !confirm {
         println!("Aborting deployment");
         return Ok(());

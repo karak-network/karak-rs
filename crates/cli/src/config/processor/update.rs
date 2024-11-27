@@ -3,12 +3,12 @@ use std::path::Path;
 
 use color_eyre::eyre::{self, eyre};
 use color_eyre::owo_colors::OwoColorize;
-use dialoguer::{theme::ColorfulTheme, Confirm};
 
 use crate::config::models::Config as ConfigModel;
 use crate::config::models::Profile;
 use crate::config::processor::prompt::profile_prompt;
 use crate::config::{get_profile, read_config, write_config, ConfigError};
+use crate::prompter;
 
 pub fn process_update(
     profile_name: String,
@@ -19,10 +19,10 @@ pub fn process_update(
     let path = Path::new(&config_path);
 
     if path.exists() && reset {
-        let confirm = Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Existing config will be deleted. Do you want to proceed?")
-            .default(false)
-            .interact()?;
+        let confirm = prompter::confirm(
+            "Existing config will be deleted. Do you want to proceed?",
+            Some(false),
+        )?;
         if !confirm {
             println!("Aborting configuration. Use `config update` command to update the config.");
             return Ok(());
