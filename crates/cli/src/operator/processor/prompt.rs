@@ -25,7 +25,7 @@ pub fn prompt_keystore_path() -> eyre::Result<PathBuf> {
 }
 
 pub fn prompt_secp256k1_passphrase() -> eyre::Result<String> {
-    prompter::password("Enter SECP256k1 keypair passphrase: ")
+    prompter::password("Enter SECP256k1 keypair passphrase")
 }
 
 pub async fn prompt_keystore_type(
