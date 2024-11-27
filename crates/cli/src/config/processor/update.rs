@@ -3,6 +3,7 @@ use std::path::Path;
 
 use color_eyre::eyre::{self, eyre};
 use color_eyre::owo_colors::OwoColorize;
+use dialoguer::{theme::ColorfulTheme, Confirm};
 
 use crate::config::models::Config as ConfigModel;
 use crate::config::models::Profile;
@@ -18,6 +19,14 @@ pub fn process_update(
     let path = Path::new(&config_path);
 
     if path.exists() && reset {
+        let confirm = Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Existing config will be deleted. Do you want to proceed?")
+            .default(false)
+            .interact()?;
+        if !confirm {
+            println!("Aborting configuration. Use `config update` command to update the config.");
+            return Ok(());
+        }
         std::fs::remove_file(path)?;
     }
 
