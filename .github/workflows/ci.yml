@@ -17,11 +17,15 @@ jobs:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
       - name: Clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        run:
+          cargo clippy --workspace --exclude karak-cli --all-targets --all-features -- -D warnings && \
+          cargo clippy --package karak-cli --all-targets --features default,testnet -- -D warnings
       - name: Rustfmt
         run: cargo fmt --all --check
       - name: Check
-        run: cargo check --workspace --all-targets --all-features
+        run:
+          cargo check --workspace --exclude karak-cli --all-targets --all-features && \
+          cargo check --package karak-cli --all-targets --features default,testnet
 
   test:
     runs-on: ubuntu-latest
@@ -43,6 +47,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: cargo doc
-        run: cargo doc --all-features --no-deps
+        run:
+          cargo doc --workspace --exclude karak-cli --all-features --no-deps && \
+          cargo doc --package karak-cli --features default,testnet --no-deps
       - name: test doc
-        run: cargo test --doc --all-features
+        run:
+          cargo test --doc --workspace --exclude karak-cli --all-features && \
+          cargo test --doc --package karak-cli --features default,testnet

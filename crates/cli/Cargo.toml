@@ -48,5 +48,6 @@ name = "karak"
 path = "src/main.rs"
 
 [features]
+default = []
 testnet = []
 bls = []
