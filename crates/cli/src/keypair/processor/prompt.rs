@@ -13,8 +13,7 @@ pub fn prompt_keypair_args(keypair_args: Option<KeypairArgs>) -> eyre::Result<Ke
             // Can unwrap safely since selection list is generated from the enum values itself
             let keystore = Keystore::from_repr(keystore_selection).unwrap();
             let keystore_name = prompter::input::<String>("Enter keystore name", None, None)?;
-            let passphrase =
-                prompter::password("Enter keypair passphrase, leave blank for no passphrase")?;
+            let passphrase = prompter::password("Enter keypair passphrase")?;
 
             Ok(KeypairArgs {
                 keystore_name: Some(keystore_name),
@@ -28,7 +27,7 @@ pub fn prompt_keypair_args(keypair_args: Option<KeypairArgs>) -> eyre::Result<Ke
 pub fn prompt_passphrase(passphrase: Option<String>) -> eyre::Result<String> {
     match passphrase {
         Some(p) => Ok(p),
-        None => prompter::password("Enter keypair passphrase, leave blank for no passphrase"),
+        None => prompter::password("Enter keypair passphrase"),
     }
 }
 
