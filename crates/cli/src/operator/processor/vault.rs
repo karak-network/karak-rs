@@ -15,7 +15,7 @@ use url::Url;
 
 use crate::prompter;
 
-use crate::util::parse_token_str;
+use crate::util;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,6 +59,7 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     vault_impl: Option<Address>,
     core_instance: CoreInstance<T, P>,
     provider: P,
+    skip_confirmation: bool,
 ) -> Result<()> {
     let chain_id = provider.get_chain_id().await?;
     let assets = match &assets {
@@ -75,9 +76,9 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     for erc20_instance in erc20_instances {
         let asset = *erc20_instance.address();
         let asset_symbol_bytes = erc20_instance.symbol().call_raw().await?;
-        let asset_symbol = parse_token_str(&asset_symbol_bytes).unwrap_or_default();
+        let asset_symbol = util::parse_token_str(&asset_symbol_bytes).unwrap_or_default();
         let asset_name_bytes = erc20_instance.name().call_raw().await?;
-        let asset_name = parse_token_str(&asset_name_bytes).unwrap_or_default();
+        let asset_name = util::parse_token_str(&asset_name_bytes).unwrap_or_default();
 
         println!("Creating vault for asset: {asset}");
         let decimals = erc20_instance.decimals().call().await?._0;
@@ -110,10 +111,17 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     println!("Deploying the following vaults:");
     println!("{}", serde_json::to_string_pretty(&vault_configs)?);
 
-    let confirm = prompter::confirm("Do you want to proceed with the deployment?", None)?;
-    if !confirm {
-        println!("Aborting deployment");
-        return Ok(());
+    println!(
+        "Estimated gas price: {} gwei",
+        util::get_gas_price(&core_instance.deployVaults(vault_configs.clone(), vault_impl)).await?
+    );
+
+    if !skip_confirmation {
+        let confirm = prompter::confirm("Do you want to proceed with the deployment?", None)?;
+        if !confirm {
+            println!("Aborting deployment");
+            return Ok(());
+        }
     }
 
     let receipt = core_instance

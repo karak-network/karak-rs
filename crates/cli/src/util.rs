@@ -1,6 +1,13 @@
 use std::ffi::CStr;
 
-use alloy::{primitives::Bytes, sol_types::SolValue};
+use alloy::{
+    contract::{CallBuilder, CallDecoder},
+    network::Network,
+    primitives::{utils::format_units, Bytes},
+    providers::Provider,
+    sol_types::SolValue,
+    transports::Transport,
+};
 use aws_types::os_shim_internal::{Env, Fs};
 use eyre::Result;
 
@@ -38,4 +45,13 @@ pub async fn get_aws_profiles() -> eyre::Result<Vec<String>> {
     .profiles()
     .map(String::from)
     .collect::<Vec<String>>())
+}
+
+pub async fn get_gas_price<T: Transport + Clone, P: Provider<T, N>, D: CallDecoder, N: Network>(
+    call_builder: &CallBuilder<T, P, D, N>,
+) -> Result<f64> {
+    let gas_price = call_builder.estimate_gas().await?;
+
+    let gwei = format_units(gas_price, "wei")?;
+    gwei.parse::<f64>().map_err(|e| eyre::eyre!(e))
 }

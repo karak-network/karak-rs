@@ -146,7 +146,11 @@ pub async fn process(
             })
             .await?
         }
-        OperatorCommand::CreateVault { assets, vault_impl } => {
+        OperatorCommand::CreateVault {
+            assets,
+            vault_impl,
+            skip_confirmation,
+        } => {
             let core_instance = CoreInstance::new(profile.core_address, provider.clone());
 
             vault::process_vault_creation(
@@ -155,6 +159,7 @@ pub async fn process(
                 vault_impl,
                 core_instance,
                 provider.clone(),
+                skip_confirmation,
             )
             .await?
 

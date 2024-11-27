@@ -18,6 +18,10 @@ pub enum OperatorCommand {
 
         #[arg(long, required(false))]
         vault_impl: Option<Address>,
+
+        /// Skip confirmation prompt
+        #[arg(long = "yes", short = 'y', default_value_t = false)]
+        skip_confirmation: bool,
     },
 
     /// Perform registration with the registry
