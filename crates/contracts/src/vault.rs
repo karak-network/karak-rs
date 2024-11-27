@@ -3,7 +3,7 @@ use alloy::{
     transports::TransportError,
 };
 
-use crate::{erc20::library::SafeTransferLib, error::DecodeError};
+use crate::{erc20::library::SafeTransferLib, error::DecodeError, impl_decode_error};
 
 sol!(
     #[allow(clippy::too_many_arguments)]
@@ -201,6 +201,8 @@ impl std::fmt::Display for Vault::VaultErrors {
     }
 }
 
+impl_decode_error!(Vault::VaultErrors);
+
 #[derive(thiserror::Error, Debug)]
 pub enum VaultError<E: std::fmt::Debug> {
     #[error("Vault error: {0}")]
@@ -211,12 +213,6 @@ pub enum VaultError<E: std::fmt::Debug> {
     Inner(E),
 }
 
-impl DecodeError<ErrorPayload> for Vault::VaultErrors {
-    fn decode_error(error: &ErrorPayload) -> Option<Vault::VaultErrors> {
-        error.as_decoded_error::<Vault::VaultErrors>(true)
-    }
-}
-
 impl From<ErrorPayload> for VaultError<ErrorPayload> {
     fn from(error: ErrorPayload) -> Self {
         match Vault::VaultErrors::decode_error(&error) {
@@ -225,17 +221,6 @@ impl From<ErrorPayload> for VaultError<ErrorPayload> {
                 Some(error) => VaultError::SafeTransferLib(error),
                 None => VaultError::Inner(error),
             },
-        }
-    }
-}
-
-impl DecodeError<TransportError> for Vault::VaultErrors {
-    fn decode_error(error: &TransportError) -> Option<Vault::VaultErrors> {
-        match error {
-            alloy::transports::RpcError::ErrorResp(error) => {
-                Vault::VaultErrors::decode_error(error)
-            }
-            _ => None,
         }
     }
 }
@@ -252,17 +237,6 @@ impl From<TransportError> for VaultError<TransportError> {
     }
 }
 
-impl DecodeError<alloy::contract::Error> for Vault::VaultErrors {
-    fn decode_error(error: &alloy::contract::Error) -> Option<Vault::VaultErrors> {
-        match error {
-            alloy::contract::Error::TransportError(error) => {
-                Vault::VaultErrors::decode_error(error)
-            }
-            _ => None,
-        }
-    }
-}
-
 impl From<alloy::contract::Error> for VaultError<alloy::contract::Error> {
     fn from(error: alloy::contract::Error) -> Self {
         match Vault::VaultErrors::decode_error(&error) {
@@ -271,17 +245,6 @@ impl From<alloy::contract::Error> for VaultError<alloy::contract::Error> {
                 Some(error) => VaultError::SafeTransferLib(error),
                 None => VaultError::Inner(error),
             },
-        }
-    }
-}
-
-impl DecodeError<PendingTransactionError> for Vault::VaultErrors {
-    fn decode_error(error: &PendingTransactionError) -> Option<Vault::VaultErrors> {
-        match error {
-            PendingTransactionError::TransportError(error) => {
-                Vault::VaultErrors::decode_error(error)
-            }
-            _ => None,
         }
     }
 }

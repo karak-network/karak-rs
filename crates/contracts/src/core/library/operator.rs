@@ -1,11 +1,9 @@
 use alloy::{
-    providers::PendingTransactionError,
-    rpc::json_rpc::ErrorPayload,
-    sol,
-    transports::{RpcError, TransportError},
+    providers::PendingTransactionError, rpc::json_rpc::ErrorPayload, sol,
+    transports::TransportError,
 };
 
-use crate::error::DecodeError;
+use crate::{error::DecodeError, impl_decode_error};
 
 sol!(
     #[allow(missing_docs)]
@@ -100,6 +98,8 @@ impl std::fmt::Display for Operator::OperatorErrors {
     }
 }
 
+impl_decode_error!(Operator::OperatorErrors);
+
 #[derive(Debug, thiserror::Error)]
 pub enum OperatorError<E: std::fmt::Debug> {
     #[error("Operator error: {0}")]
@@ -108,26 +108,11 @@ pub enum OperatorError<E: std::fmt::Debug> {
     Inner(E),
 }
 
-impl DecodeError<ErrorPayload> for Operator::OperatorErrors {
-    fn decode_error(error: &ErrorPayload) -> Option<Operator::OperatorErrors> {
-        error.as_decoded_error::<Operator::OperatorErrors>(true)
-    }
-}
-
 impl From<ErrorPayload> for OperatorError<ErrorPayload> {
     fn from(value: ErrorPayload) -> Self {
         match Operator::OperatorErrors::decode_error(&value) {
             Some(error) => OperatorError::Operator(error),
             None => OperatorError::Inner(value),
-        }
-    }
-}
-
-impl DecodeError<TransportError> for Operator::OperatorErrors {
-    fn decode_error(error: &TransportError) -> Option<Operator::OperatorErrors> {
-        match error {
-            RpcError::ErrorResp(error) => error.as_decoded_error::<Operator::OperatorErrors>(true),
-            _ => None,
         }
     }
 }
@@ -141,33 +126,11 @@ impl From<TransportError> for OperatorError<TransportError> {
     }
 }
 
-impl DecodeError<alloy::contract::Error> for Operator::OperatorErrors {
-    fn decode_error(error: &alloy::contract::Error) -> Option<Operator::OperatorErrors> {
-        match error {
-            alloy::contract::Error::TransportError(transport_error) => {
-                Operator::OperatorErrors::decode_error(transport_error)
-            }
-            _ => None,
-        }
-    }
-}
-
 impl From<alloy::contract::Error> for OperatorError<alloy::contract::Error> {
     fn from(value: alloy::contract::Error) -> Self {
         match Operator::OperatorErrors::decode_error(&value) {
             Some(error) => OperatorError::Operator(error),
             _ => OperatorError::Inner(value),
-        }
-    }
-}
-
-impl DecodeError<PendingTransactionError> for Operator::OperatorErrors {
-    fn decode_error(error: &PendingTransactionError) -> Option<Operator::OperatorErrors> {
-        match error {
-            PendingTransactionError::TransportError(transport_error) => {
-                Operator::OperatorErrors::decode_error(transport_error)
-            }
-            _ => None,
         }
     }
 }

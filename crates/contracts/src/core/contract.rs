@@ -1,16 +1,14 @@
 use std::fmt::{Debug, Display};
 
 use alloy::{
-    providers::PendingTransactionError,
-    rpc::json_rpc::ErrorPayload,
-    sol,
-    transports::{RpcError, TransportError},
+    providers::PendingTransactionError, rpc::json_rpc::ErrorPayload, sol,
+    transports::TransportError,
 };
 use serde::{ser::SerializeStruct, Serialize};
 use Operator::{QueuedStakeUpdate, StakeUpdateRequest};
 use VaultLib::Config;
 
-use crate::error::DecodeError;
+use crate::{error::DecodeError, impl_decode_error};
 
 use super::library;
 
@@ -151,6 +149,10 @@ impl Display for Core::CoreErrors {
     }
 }
 
+impl_decode_error!(Core::CoreErrors);
+
+// impl_decode_error!(Core::CoreErrors);
+
 #[derive(thiserror::Error, Debug)]
 pub enum CoreError<E: std::fmt::Debug> {
     #[error("Core error: {0}")]
@@ -167,12 +169,6 @@ impl<E: std::fmt::Debug> From<Core::CoreErrors> for CoreError<E> {
     }
 }
 
-impl DecodeError<ErrorPayload> for Core::CoreErrors {
-    fn decode_error(error: &ErrorPayload) -> Option<Core::CoreErrors> {
-        error.as_decoded_error::<Core::CoreErrors>(true)
-    }
-}
-
 impl From<ErrorPayload> for CoreError<ErrorPayload> {
     fn from(value: ErrorPayload) -> Self {
         match Core::CoreErrors::decode_error(&value) {
@@ -181,15 +177,6 @@ impl From<ErrorPayload> for CoreError<ErrorPayload> {
                 Some(error) => CoreError::Operator(error),
                 None => CoreError::Inner(value),
             },
-        }
-    }
-}
-
-impl DecodeError<TransportError> for Core::CoreErrors {
-    fn decode_error(error: &TransportError) -> Option<Core::CoreErrors> {
-        match error {
-            RpcError::ErrorResp(error) => error.as_decoded_error::<Core::CoreErrors>(true),
-            _ => None,
         }
     }
 }
@@ -206,17 +193,6 @@ impl From<TransportError> for CoreError<TransportError> {
     }
 }
 
-impl DecodeError<alloy::contract::Error> for Core::CoreErrors {
-    fn decode_error(error: &alloy::contract::Error) -> Option<Core::CoreErrors> {
-        match error {
-            alloy::contract::Error::TransportError(transport_error) => {
-                Core::CoreErrors::decode_error(transport_error)
-            }
-            _ => None,
-        }
-    }
-}
-
 impl From<alloy::contract::Error> for CoreError<alloy::contract::Error> {
     fn from(value: alloy::contract::Error) -> Self {
         match Core::CoreErrors::decode_error(&value) {
@@ -225,17 +201,6 @@ impl From<alloy::contract::Error> for CoreError<alloy::contract::Error> {
                 Some(error) => CoreError::Operator(error),
                 None => CoreError::Inner(value),
             },
-        }
-    }
-}
-
-impl DecodeError<PendingTransactionError> for Core::CoreErrors {
-    fn decode_error(error: &PendingTransactionError) -> Option<Core::CoreErrors> {
-        match error {
-            PendingTransactionError::TransportError(transport_error) => {
-                Core::CoreErrors::decode_error(transport_error)
-            }
-            _ => None,
         }
     }
 }

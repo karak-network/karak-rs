@@ -1,11 +1,9 @@
 use alloy::{
-    providers::PendingTransactionError,
-    rpc::json_rpc::ErrorPayload,
-    sol,
-    transports::{RpcError, TransportError},
+    providers::PendingTransactionError, rpc::json_rpc::ErrorPayload, sol,
+    transports::TransportError,
 };
 
-use crate::error::DecodeError;
+use crate::{error::DecodeError, impl_decode_error};
 
 sol!(
     #[allow(missing_docs)]
@@ -67,6 +65,8 @@ impl std::fmt::Display for SafeTransferLib::SafeTransferLibErrors {
     }
 }
 
+impl_decode_error!(SafeTransferLib::SafeTransferLibErrors);
+
 #[derive(Debug, thiserror::Error)]
 pub enum SafeTransferLibError<E: std::fmt::Debug> {
     #[error("SafeTransferLib error: {0}")]
@@ -81,28 +81,11 @@ impl<E: std::fmt::Debug> From<SafeTransferLib::SafeTransferLibErrors> for SafeTr
     }
 }
 
-impl DecodeError<ErrorPayload> for SafeTransferLib::SafeTransferLibErrors {
-    fn decode_error(error: &ErrorPayload) -> Option<SafeTransferLib::SafeTransferLibErrors> {
-        error.as_decoded_error::<SafeTransferLib::SafeTransferLibErrors>(true)
-    }
-}
-
 impl From<ErrorPayload> for SafeTransferLibError<ErrorPayload> {
     fn from(value: ErrorPayload) -> Self {
         match SafeTransferLib::SafeTransferLibErrors::decode_error(&value) {
             Some(error) => SafeTransferLibError::SafeTransferLib(error),
             None => SafeTransferLibError::Inner(value),
-        }
-    }
-}
-
-impl DecodeError<TransportError> for SafeTransferLib::SafeTransferLibErrors {
-    fn decode_error(error: &TransportError) -> Option<SafeTransferLib::SafeTransferLibErrors> {
-        match error {
-            RpcError::ErrorResp(error) => {
-                error.as_decoded_error::<SafeTransferLib::SafeTransferLibErrors>(true)
-            }
-            _ => None,
         }
     }
 }
@@ -116,37 +99,11 @@ impl From<TransportError> for SafeTransferLibError<TransportError> {
     }
 }
 
-impl DecodeError<alloy::contract::Error> for SafeTransferLib::SafeTransferLibErrors {
-    fn decode_error(
-        error: &alloy::contract::Error,
-    ) -> Option<SafeTransferLib::SafeTransferLibErrors> {
-        match error {
-            alloy::contract::Error::TransportError(transport_error) => {
-                SafeTransferLib::SafeTransferLibErrors::decode_error(transport_error)
-            }
-            _ => None,
-        }
-    }
-}
-
 impl From<alloy::contract::Error> for SafeTransferLibError<alloy::contract::Error> {
     fn from(value: alloy::contract::Error) -> Self {
         match SafeTransferLib::SafeTransferLibErrors::decode_error(&value) {
             Some(error) => SafeTransferLibError::SafeTransferLib(error),
             _ => SafeTransferLibError::Inner(value),
-        }
-    }
-}
-
-impl DecodeError<PendingTransactionError> for SafeTransferLib::SafeTransferLibErrors {
-    fn decode_error(
-        error: &PendingTransactionError,
-    ) -> Option<SafeTransferLib::SafeTransferLibErrors> {
-        match error {
-            PendingTransactionError::TransportError(transport_error) => {
-                SafeTransferLib::SafeTransferLibErrors::decode_error(transport_error)
-            }
-            _ => None,
         }
     }
 }

@@ -3,7 +3,7 @@ use alloy::{
     transports::TransportError,
 };
 
-use crate::error::DecodeError;
+use crate::{error::DecodeError, impl_decode_error};
 
 sol!(
     #[allow(clippy::too_many_arguments)]
@@ -75,6 +75,8 @@ impl std::fmt::Display for ERC20Mintable::ERC20MintableErrors {
     }
 }
 
+impl_decode_error!(ERC20Mintable::ERC20MintableErrors);
+
 #[derive(thiserror::Error, Debug)]
 pub enum ERC20MintableError<E: std::fmt::Debug> {
     #[error("ERC20Mintable error: {0}")]
@@ -89,28 +91,11 @@ impl<E: std::fmt::Debug> From<ERC20Mintable::ERC20MintableErrors> for ERC20Minta
     }
 }
 
-impl DecodeError<ErrorPayload> for ERC20Mintable::ERC20MintableErrors {
-    fn decode_error(error: &ErrorPayload) -> Option<ERC20Mintable::ERC20MintableErrors> {
-        error.as_decoded_error::<ERC20Mintable::ERC20MintableErrors>(true)
-    }
-}
-
 impl From<ErrorPayload> for ERC20MintableError<ErrorPayload> {
     fn from(error: ErrorPayload) -> Self {
         match ERC20Mintable::ERC20MintableErrors::decode_error(&error) {
             Some(err) => ERC20MintableError::Revert(err),
             None => ERC20MintableError::Inner(error),
-        }
-    }
-}
-
-impl DecodeError<TransportError> for ERC20Mintable::ERC20MintableErrors {
-    fn decode_error(error: &TransportError) -> Option<ERC20Mintable::ERC20MintableErrors> {
-        match error {
-            alloy::transports::RpcError::ErrorResp(error) => {
-                ERC20Mintable::ERC20MintableErrors::decode_error(error)
-            }
-            _ => None,
         }
     }
 }
@@ -124,33 +109,11 @@ impl From<TransportError> for ERC20MintableError<TransportError> {
     }
 }
 
-impl DecodeError<alloy::contract::Error> for ERC20Mintable::ERC20MintableErrors {
-    fn decode_error(error: &alloy::contract::Error) -> Option<ERC20Mintable::ERC20MintableErrors> {
-        match error {
-            alloy::contract::Error::TransportError(error) => {
-                ERC20Mintable::ERC20MintableErrors::decode_error(error)
-            }
-            _ => None,
-        }
-    }
-}
-
 impl From<alloy::contract::Error> for ERC20MintableError<alloy::contract::Error> {
     fn from(value: alloy::contract::Error) -> Self {
         match ERC20Mintable::ERC20MintableErrors::decode_error(&value) {
             Some(err) => ERC20MintableError::Revert(err),
             None => ERC20MintableError::Inner(value),
-        }
-    }
-}
-
-impl DecodeError<PendingTransactionError> for ERC20Mintable::ERC20MintableErrors {
-    fn decode_error(error: &PendingTransactionError) -> Option<ERC20Mintable::ERC20MintableErrors> {
-        match error {
-            PendingTransactionError::TransportError(error) => {
-                ERC20Mintable::ERC20MintableErrors::decode_error(error)
-            }
-            _ => None,
         }
     }
 }

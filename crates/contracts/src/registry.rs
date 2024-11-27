@@ -1,11 +1,9 @@
 use alloy::{
-    providers::PendingTransactionError,
-    rpc::json_rpc::ErrorPayload,
-    sol,
-    transports::{RpcError, TransportError},
+    providers::PendingTransactionError, rpc::json_rpc::ErrorPayload, sol,
+    transports::TransportError,
 };
 
-use crate::error::DecodeError;
+use crate::{error::DecodeError, impl_decode_error};
 
 sol!(
     #[allow(missing_docs)]
@@ -130,6 +128,8 @@ impl std::fmt::Display for RestakingRegistry::RestakingRegistryErrors {
     }
 }
 
+impl_decode_error!(RestakingRegistry::RestakingRegistryErrors);
+
 #[derive(Debug, thiserror::Error)]
 pub enum RestakingRegistryError<E: std::fmt::Debug> {
     #[error("RestakingRegistry error: {0}")]
@@ -155,17 +155,6 @@ impl From<ErrorPayload> for RestakingRegistryError<ErrorPayload> {
     }
 }
 
-impl DecodeError<TransportError> for RestakingRegistry::RestakingRegistryErrors {
-    fn decode_error(error: &TransportError) -> Option<RestakingRegistry::RestakingRegistryErrors> {
-        match error {
-            RpcError::ErrorResp(error) => {
-                error.as_decoded_error::<RestakingRegistry::RestakingRegistryErrors>(true)
-            }
-            _ => None,
-        }
-    }
-}
-
 impl From<TransportError> for RestakingRegistryError<TransportError> {
     fn from(value: TransportError) -> Self {
         match RestakingRegistry::RestakingRegistryErrors::decode_error(&value) {
@@ -175,37 +164,11 @@ impl From<TransportError> for RestakingRegistryError<TransportError> {
     }
 }
 
-impl DecodeError<alloy::contract::Error> for RestakingRegistry::RestakingRegistryErrors {
-    fn decode_error(
-        error: &alloy::contract::Error,
-    ) -> Option<RestakingRegistry::RestakingRegistryErrors> {
-        match error {
-            alloy::contract::Error::TransportError(transport_error) => {
-                RestakingRegistry::RestakingRegistryErrors::decode_error(transport_error)
-            }
-            _ => None,
-        }
-    }
-}
-
 impl From<alloy::contract::Error> for RestakingRegistryError<alloy::contract::Error> {
     fn from(value: alloy::contract::Error) -> Self {
         match RestakingRegistry::RestakingRegistryErrors::decode_error(&value) {
             Some(error) => RestakingRegistryError::Revert(error),
             _ => RestakingRegistryError::Inner(value),
-        }
-    }
-}
-
-impl DecodeError<PendingTransactionError> for RestakingRegistry::RestakingRegistryErrors {
-    fn decode_error(
-        error: &PendingTransactionError,
-    ) -> Option<RestakingRegistry::RestakingRegistryErrors> {
-        match error {
-            PendingTransactionError::TransportError(transport_error) => {
-                RestakingRegistry::RestakingRegistryErrors::decode_error(transport_error)
-            }
-            _ => None,
         }
     }
 }

@@ -1,11 +1,9 @@
 use alloy::{
-    providers::PendingTransactionError,
-    rpc::json_rpc::ErrorPayload,
-    sol,
-    transports::{RpcError, TransportError},
+    providers::PendingTransactionError, rpc::json_rpc::ErrorPayload, sol,
+    transports::TransportError,
 };
 
-use crate::error::DecodeError;
+use crate::{error::DecodeError, impl_decode_error};
 
 sol!(
     #[allow(missing_docs)]
@@ -64,6 +62,8 @@ impl std::fmt::Display for ERC20::ERC20Errors {
     }
 }
 
+impl_decode_error!(ERC20::ERC20Errors);
+
 #[derive(Debug, thiserror::Error)]
 pub enum ERC20Error<E: std::fmt::Debug> {
     #[error("ERC20 error: {0}")]
@@ -78,26 +78,11 @@ impl<E: std::fmt::Debug> From<ERC20::ERC20Errors> for ERC20Error<E> {
     }
 }
 
-impl DecodeError<ErrorPayload> for ERC20::ERC20Errors {
-    fn decode_error(error: &ErrorPayload) -> Option<ERC20::ERC20Errors> {
-        error.as_decoded_error::<ERC20::ERC20Errors>(true)
-    }
-}
-
 impl From<ErrorPayload> for ERC20Error<ErrorPayload> {
     fn from(value: ErrorPayload) -> Self {
         match value.as_decoded_error::<ERC20::ERC20Errors>(true) {
             Some(error) => ERC20Error::ERC20(error),
             None => ERC20Error::Inner(value),
-        }
-    }
-}
-
-impl DecodeError<TransportError> for ERC20::ERC20Errors {
-    fn decode_error(error: &TransportError) -> Option<ERC20::ERC20Errors> {
-        match error {
-            RpcError::ErrorResp(error) => error.as_decoded_error::<ERC20::ERC20Errors>(true),
-            _ => None,
         }
     }
 }
@@ -111,33 +96,11 @@ impl From<TransportError> for ERC20Error<TransportError> {
     }
 }
 
-impl DecodeError<alloy::contract::Error> for ERC20::ERC20Errors {
-    fn decode_error(error: &alloy::contract::Error) -> Option<ERC20::ERC20Errors> {
-        match error {
-            alloy::contract::Error::TransportError(transport_error) => {
-                ERC20::ERC20Errors::decode_error(transport_error)
-            }
-            _ => None,
-        }
-    }
-}
-
 impl From<alloy::contract::Error> for ERC20Error<alloy::contract::Error> {
     fn from(value: alloy::contract::Error) -> Self {
         match ERC20::ERC20Errors::decode_error(&value) {
             Some(error) => ERC20Error::ERC20(error),
             _ => ERC20Error::Inner(value),
-        }
-    }
-}
-
-impl DecodeError<PendingTransactionError> for ERC20::ERC20Errors {
-    fn decode_error(error: &PendingTransactionError) -> Option<ERC20::ERC20Errors> {
-        match error {
-            PendingTransactionError::TransportError(transport_error) => {
-                ERC20::ERC20Errors::decode_error(transport_error)
-            }
-            _ => None,
         }
     }
 }
