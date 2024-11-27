@@ -5,6 +5,7 @@ use color_eyre::owo_colors::OwoColorize;
 
 use crate::config::models::{Curve, Keystore, Profile};
 use crate::keypair::processor::generate::generate_keystore;
+use crate::keypair::KeypairArgs;
 use crate::operator::processor::stake::StakeUpdateType;
 use crate::prompter;
 use crate::shared::Encoding;
@@ -48,7 +49,18 @@ pub async fn prompt_keystore_type(
     // if length of keystore_names is greater than keystore_name_selection, then we need to generate a new keystore
     if keystore_name_selection == keystore_names.len() - 1 {
         println!("\nGenerating new keystore...");
-        return generate_keystore(None, Some(curve), profile, profile_name, config_path).await;
+        return generate_keystore(
+            Some(KeypairArgs {
+                keystore: None,
+                keystore_name: None,
+                curve: Some(curve),
+            }),
+            None,
+            profile,
+            profile_name,
+            config_path,
+        )
+        .await;
     }
     let keystore_name = keystore_names[keystore_name_selection].clone();
     Ok(keystores.get(&keystore_name).unwrap().clone())
