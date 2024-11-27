@@ -1,11 +1,8 @@
 use std::collections::HashMap;
 
 use crate::config::models::Keystore;
-use crate::{
-    config::models::Curve,
-    keypair::{KeypairArgs, KeypairLocationArgs},
-    prompter,
-};
+use crate::util;
+use crate::{config::models::Curve, keypair::KeypairArgs, prompter};
 
 pub fn prompt_keypair_args(keypair_args: Option<KeypairArgs>) -> eyre::Result<KeypairArgs> {
     match keypair_args {
@@ -63,17 +60,9 @@ pub fn prompt_curve(curve: Option<Curve>) -> eyre::Result<Curve> {
     }
 }
 
-pub fn prompt_keypair_location_args(
-    keypair_location_args: Option<KeypairLocationArgs>,
-) -> eyre::Result<KeypairLocationArgs> {
-    match keypair_location_args {
-        Some(ka) => Ok(ka),
-        None => Ok(KeypairLocationArgs {
-            keypair: Some(prompter::input::<String>(
-                "Enter keypair ID/path to retrieve",
-                None,
-                None,
-            )?),
-        }),
-    }
+pub async fn prompt_aws_profile() -> eyre::Result<String> {
+    let profiles = util::get_aws_profiles().await?;
+    let profiles_refs: Vec<&str> = profiles.iter().map(|s| s.as_str()).collect();
+    let (profile_selection, _) = prompter::select_str(&profiles_refs, "Select AWS profile", None)?;
+    Ok(profiles[profile_selection].clone())
 }

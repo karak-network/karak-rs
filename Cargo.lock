@@ -3087,8 +3087,10 @@ version = "0.2.4"
 dependencies = [
  "alloy",
  "aws-config",
+ "aws-runtime",
  "aws-sdk-kms",
  "aws-sdk-secretsmanager",
+ "aws-types",
  "base64 0.22.1",
  "bs58",
  "clap",

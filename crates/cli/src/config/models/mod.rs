@@ -64,7 +64,7 @@ pub enum Keystore {
 
     #[serde(rename = "aws")]
     #[strum(serialize = "aws")]
-    Aws { secret: String },
+    Aws { secret: String, profile: String },
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -1,6 +1,7 @@
 use std::ffi::CStr;
 
 use alloy::{primitives::Bytes, sol_types::SolValue};
+use aws_types::os_shim_internal::{Env, Fs};
 use eyre::Result;
 
 pub fn parse_token_str(input: &Bytes) -> Result<String> {
@@ -23,4 +24,18 @@ macro_rules! clap_enum_variants {
         use strum::VariantNames;
         clap::builder::PossibleValuesParser::new(<$e>::VARIANTS).map(|s| s.parse::<$e>().unwrap())
     }};
+}
+
+// TODO: Add options for custom files
+pub async fn get_aws_profiles() -> eyre::Result<Vec<String>> {
+    Ok(aws_config::profile::load(
+        &Fs::real(),
+        &Env::real(),
+        &aws_runtime::env_config::file::EnvConfigFiles::default(),
+        None,
+    )
+    .await?
+    .profiles()
+    .map(String::from)
+    .collect::<Vec<String>>())
 }

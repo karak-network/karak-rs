@@ -59,10 +59,3 @@ pub struct KeypairArgs {
     #[arg(long)]
     pub passphrase: Option<String>,
 }
-
-#[derive(Args, Debug)]
-pub struct KeypairLocationArgs {
-    /// Keypair ID/path to retrieve
-    #[arg(long)]
-    pub keypair: Option<String>,
-}
