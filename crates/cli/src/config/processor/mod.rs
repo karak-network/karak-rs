@@ -11,7 +11,7 @@ use update::process_update;
 pub async fn process(command: Config, profile: String, config_path: String) -> eyre::Result<()> {
     match command {
         Config::Update { reset } => process_update(profile, None, config_path, reset),
-        Config::Get => process_get(profile, config_path),
+        Config::Get { all } => process_get(profile, config_path, all),
     }
 }
 
