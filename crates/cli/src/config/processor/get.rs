@@ -14,8 +14,13 @@ pub fn process_get(
     let mut bytes = Vec::with_capacity(128);
 
     if all {
-        serde_yaml::to_writer(&mut bytes, &config).unwrap();
-        display_config(&bytes, "All Profiles");
+        for profile_name in config.profiles.keys() {
+            bytes.clear();
+            let profile_config = get_profile(&config, profile_name)?;
+            serde_yaml::to_writer(&mut bytes, &profile_config).unwrap();
+            display_config(&bytes, &format!("Profile: {}", profile_name));
+            println!();
+        }
         return Ok(());
     }
 
