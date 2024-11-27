@@ -4,7 +4,7 @@ use alloy::{
     transports::Transport,
 };
 use eyre::Result;
-use karak_contracts::erc20::mintable::ERC20Mintable::ERC20MintableInstance;
+use karak_contracts::erc20::mintable::{ERC20Mintable::ERC20MintableInstance, ERC20MintableError};
 
 pub async fn mint<T: Transport + Clone, P: Provider<T>>(
     amount: U256,
@@ -15,9 +15,11 @@ pub async fn mint<T: Transport + Clone, P: Provider<T>>(
     let receipt = erc20_instance
         .mint(operator_address, amount)
         .send()
-        .await?
+        .await
+        .map_err(ERC20MintableError::from)?
         .get_receipt()
-        .await?;
+        .await
+        .map_err(ERC20MintableError::from)?;
 
     println!(
         "Minted {} {} to {} in tx {}",

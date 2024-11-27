@@ -8,9 +8,10 @@ repository = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-alloy = { workspace = true }
+alloy = { workspace = true, features = ["json-rpc", "rpc"] }
 eyre = "0.6.12"
 serde.workspace = true
+thiserror = "2.0.3"
 trait-variant = { workspace = true }
 
 [dev-dependencies]
