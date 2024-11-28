@@ -3399,7 +3399,7 @@ dependencies = [
 
 [[package]]
 name = "karak-contracts"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "alloy",
  "eyre",
@@ -3459,7 +3459,7 @@ dependencies = [
 
 [[package]]
 name = "karak-rs"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "karak-contracts",
  "karak-kms",
