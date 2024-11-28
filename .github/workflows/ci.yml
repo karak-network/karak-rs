@@ -18,14 +18,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Clippy
         run:
-          cargo clippy --workspace --exclude karak-cli --all-targets --all-features -- -D warnings && \
-          cargo clippy --package karak-cli --all-targets --features default,testnet -- -D warnings
+          cargo clippy --workspace --exclude karak-cli --all-targets --all-features -- -D warnings && cargo clippy --package karak-cli --all-targets --features default,testnet -- -D warnings
       - name: Rustfmt
         run: cargo fmt --all --check
       - name: Check
         run:
-          cargo check --workspace --exclude karak-cli --all-targets --all-features && \
-          cargo check --package karak-cli --all-targets --features default,testnet
+          cargo check --workspace --exclude karak-cli --all-targets --all-features && cargo check --package karak-cli --all-targets --features default,testnet
 
   test:
     runs-on: ubuntu-latest
