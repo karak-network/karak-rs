@@ -10,7 +10,7 @@ use alloy::{
 };
 use eyre::{eyre, Result};
 use karak_contracts::{
-    core::contract::{CoreError, VaultLib},
+    core::contract::VaultLib,
     erc20::{
         contract::{ERC20Error, ERC20::ERC20Instance},
         interface::IERC20Metadata::IERC20MetadataInstance,
@@ -26,7 +26,7 @@ use crate::{
     prompter,
 };
 
-use crate::util::parse_token_str;
+use crate::util;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct Asset {
@@ -59,8 +59,8 @@ async fn get_asset<T: Transport + Clone, P: Provider<T>>(
 
     Ok(Asset {
         address: asset_address,
-        symbol: parse_token_str(&symbol).unwrap_or_default(),
-        name: parse_token_str(&name).unwrap_or_default(),
+        symbol: util::parse_token_str(&symbol).unwrap_or_default(),
+        name: util::parse_token_str(&name).unwrap_or_default(),
         decimals,
     })
 }
@@ -165,6 +165,7 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     vault_impl: Option<Address>,
     core_instance: CoreInstance<T, P>,
     provider: P,
+    skip_confirmation: bool,
 ) -> Result<()> {
     let chain_id = provider.get_chain_id().await?;
 
@@ -241,20 +242,22 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     println!("Deploying the following vaults:");
     println!("{}", serde_json::to_string_pretty(&vault_configs)?);
 
-    let confirm = prompter::confirm("Do you want to proceed with the deployment?", None)?;
-    if !confirm {
-        println!("Aborting deployment");
-        return Ok(());
+    let call_builder = core_instance.deployVaults(vault_configs.clone(), vault_impl);
+
+    println!(
+        "Estimated gas price: {} gwei",
+        util::get_gas_price(&call_builder).await?
+    );
+
+    if !skip_confirmation {
+        let confirm = prompter::confirm("Do you want to proceed with the deployment?", None)?;
+        if !confirm {
+            println!("Aborting deployment");
+            return Ok(());
+        }
     }
 
-    let receipt = core_instance
-        .deployVaults(vault_configs, vault_impl)
-        .send()
-        .await
-        .map_err(CoreError::from)?
-        .get_receipt()
-        .await
-        .map_err(CoreError::from)?;
+    let receipt = call_builder.send().await?.get_receipt().await?;
 
     let asset_map = assets
         .into_iter()

@@ -18,6 +18,10 @@ pub enum OperatorCommand {
 
         #[arg(long, required(false))]
         vault_impl: Option<Address>,
+
+        /// Skip confirmation prompt
+        #[arg(long = "yes", short = 'y', default_value_t = false)]
+        skip_confirmation: bool,
     },
 
     /// Perform registration with the registry
@@ -64,7 +68,7 @@ pub enum OperatorCommand {
         #[arg(long)]
         bn254_keypair_location: Option<PathBuf>,
 
-        #[arg(long)]
+        #[arg(long, value_parser = crate::clap_enum_variants!(Keystore))]
         bn254_keystore: Option<Keystore>,
 
         #[arg(long)]
@@ -106,7 +110,7 @@ pub struct OperatorArgs {
     #[command(subcommand)]
     pub command: OperatorCommand,
 
-    #[arg(long, global(true))]
+    #[arg(long, global(true), value_parser = crate::clap_enum_variants!(Keystore))]
     secp256k1_keystore_type: Option<Keystore>,
 
     #[arg(long, required_if_eq("secp256k1_keystore_type", "local"), global(true))]
@@ -114,16 +118,4 @@ pub struct OperatorArgs {
 
     #[arg(long, global(true))]
     secp256k1_passphrase: Option<String>,
-
-    #[arg(long, required_if_eq("secp256k1_keystore_type", "aws"), global(true))]
-    aws_region: Option<String>,
-
-    #[arg(long, required_if_eq("secp256k1_keystore_type", "aws"), global(true))]
-    aws_access_key_id: Option<String>,
-
-    #[arg(long, required_if_eq("secp256k1_keystore_type", "aws"), global(true))]
-    aws_secret_access_key: Option<String>,
-
-    #[arg(long, required_if_eq("secp256k1_keystore_type", "aws"), global(true))]
-    aws_operator_key_id: Option<String>,
 }

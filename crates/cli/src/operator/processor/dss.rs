@@ -35,7 +35,10 @@ pub async fn process_registration<T: Transport + Clone, P: Provider<T>>(
             let local_keystore = keystore::local::LocalEncryptedKeystore::new(p.clone());
             local_keystore.retrieve(args.bn254_passphrase)?
         }
-        Keystore::Aws { secret: _ } => todo!(),
+        Keystore::Aws {
+            secret: _,
+            profile: _,
+        } => todo!(),
     };
 
     // TODO: Get this value from the DSS contract not from the args

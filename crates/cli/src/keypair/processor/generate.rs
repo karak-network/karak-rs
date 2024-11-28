@@ -19,34 +19,35 @@ use crate::{config::models::Curve, keypair::KeypairArgs};
 
 pub async fn process_generate(
     keypair_args: Option<KeypairArgs>,
-    curve: Option<Curve>,
+    passphrase: Option<String>,
     profile: Profile,
     profile_name: &str,
     config_path: String,
 ) -> eyre::Result<()> {
-    generate_keystore(keypair_args, curve, profile, profile_name, config_path).await?;
+    generate_keystore(keypair_args, passphrase, profile, profile_name, config_path).await?;
     Ok(())
 }
 
 pub async fn generate_keystore(
     keypair_args: Option<KeypairArgs>,
-    curve: Option<Curve>,
+    passphrase: Option<String>,
     profile: Profile,
     profile_name: &str,
     config_path: String,
 ) -> eyre::Result<Keystore> {
     let keypair_args = prompt::prompt_keypair_args(keypair_args)?;
-    let curve = prompt::prompt_curve(curve)?;
 
     let KeypairArgs {
         keystore,
-        passphrase,
+        curve,
         keystore_name,
     } = keypair_args;
 
+    let passphrase = prompt::prompt_passphrase(passphrase)?;
+
     // values will be set by prompt
     let keystore = keystore.unwrap();
-    let passphrase = passphrase.unwrap();
+    let curve = curve.unwrap();
     let keystore_name = keystore_name.unwrap();
 
     let generation_folder = profile.clone().key_generation_folder;
@@ -87,8 +88,15 @@ pub async fn generate_keystore(
 
                     Ok(keystore)
                 }
-                Keystore::Aws { secret: _ } => {
-                    let config = aws_config::load_from_env().await;
+                Keystore::Aws {
+                    secret: _,
+                    profile: _,
+                } => {
+                    let aws_profile_name = prompt::prompt_aws_profile().await?;
+                    let config = aws_config::from_env()
+                        .profile_name(aws_profile_name.clone())
+                        .load()
+                        .await;
                     let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
 
                     let secret_name = format!("{keypair}.bls");
@@ -108,6 +116,7 @@ pub async fn generate_keystore(
 
                     let keystore = Keystore::Aws {
                         secret: secret_name,
+                        profile: aws_profile_name,
                     };
 
                     add_keystore_to_profile(
@@ -164,7 +173,10 @@ pub async fn generate_keystore(
 
                     Ok(keystore)
                 }
-                Keystore::Aws { secret: _ } => {
+                Keystore::Aws {
+                    secret: _,
+                    profile: _,
+                } => {
                     todo!()
                 }
             }

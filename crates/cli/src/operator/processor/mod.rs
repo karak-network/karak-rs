@@ -12,8 +12,6 @@ use alloy::{
     providers::ProviderBuilder,
     signers::{aws::AwsSigner, local::LocalSigner, Signer},
 };
-use aws_config::{BehaviorVersion, Region};
-use aws_sdk_secretsmanager::config::{Credentials, SharedCredentialsProvider};
 use karak_contracts::{
     erc20::contract::ERC20::ERC20Instance, registry::RestakingRegistry,
     vault::Vault::VaultInstance, Core::CoreInstance,
@@ -45,8 +43,7 @@ pub async fn process(
                 path: secp256k1_keystore_path,
             }
         }
-        // TODO: Update config to handle AWS secret and access keys
-        Some(Keystore::Aws { secret: s }) => Keystore::Aws { secret: s },
+        Some(Keystore::Aws { secret, profile }) => Keystore::Aws { secret, profile },
         None => {
             prompt_keystore_type(
                 Curve::Secp256k1,
@@ -72,33 +69,11 @@ pub async fn process(
             (operator_wallet, operator_address)
         }
         // TODO: Update config to handle AWS secret and access keys
-        Keystore::Aws { secret: _ } => {
-            let region = match args.aws_region {
-                Some(r) => r,
-                None => prompter::input::<String>("Enter AWS region", None, None)?,
-            };
-            let access_key_id = match args.aws_access_key_id {
-                Some(ak) => ak,
-                None => prompter::input::<String>("Enter AWS access key ID", None, None)?,
-            };
-            let secret_access_key = match args.aws_secret_access_key {
-                Some(sk) => sk,
-                None => prompter::input::<String>("Enter AWS secret access key", None, None)?,
-            };
-            let operator_key_id = match args.aws_operator_key_id {
-                Some(ok) => ok,
-                None => prompter::input::<String>("Enter AWS operator key ID", None, None)?,
-            };
-
-            let credentials = Credentials::new(access_key_id, secret_access_key, None, None, "");
-            let aws_config = aws_config::defaults(BehaviorVersion::latest())
-                .region(Region::new(region))
-                .credentials_provider(SharedCredentialsProvider::new(credentials))
-                .load()
-                .await;
+        Keystore::Aws { secret, profile } => {
+            let aws_config = aws_config::from_env().profile_name(profile).load().await;
 
             let client = aws_sdk_kms::Client::new(&aws_config);
-            let signer = AwsSigner::new(client, operator_key_id, None).await?;
+            let signer = AwsSigner::new(client, secret, None).await?;
 
             let operator_address = signer.address();
             let operator_wallet = EthereumWallet::from(signer);
@@ -134,8 +109,7 @@ pub async fn process(
                         path: bn254_keypair_location,
                     }
                 }
-                // TODO: Update config to handle AWS secret and access keys
-                Some(Keystore::Aws { secret: s }) => Keystore::Aws { secret: s },
+                Some(Keystore::Aws { secret, profile }) => Keystore::Aws { secret, profile },
                 None => {
                     prompt_keystore_type(
                         Curve::Bn254,
@@ -175,7 +149,11 @@ pub async fn process(
             })
             .await?
         }
-        OperatorCommand::CreateVault { assets, vault_impl } => {
+        OperatorCommand::CreateVault {
+            assets,
+            vault_impl,
+            skip_confirmation,
+        } => {
             let core_instance = CoreInstance::new(profile.core_address, provider.clone());
 
             vault::process_vault_creation(
@@ -184,6 +162,7 @@ pub async fn process(
                 vault_impl,
                 core_instance,
                 provider.clone(),
+                skip_confirmation,
             )
             .await?
 

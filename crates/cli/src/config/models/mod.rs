@@ -46,10 +46,12 @@ impl Chain {
 pub enum Curve {
     /// BN254 (also known as alt_bn128) is the curve used in Ethereum for BLS aggregation
     #[serde(rename = "bn254")]
+    #[strum(serialize = "bn254")]
     Bn254,
 
     /// secp256k1 is the curve used in Ethereum for ECDSA signatures
     #[serde(rename = "secp256k1")]
+    #[strum(serialize = "secp256k1")]
     Secp256k1,
 }
 
@@ -57,9 +59,12 @@ pub enum Curve {
 #[serde(tag = "type")]
 pub enum Keystore {
     #[serde(rename = "local")]
+    #[strum(serialize = "local")]
     Local { path: PathBuf },
+
     #[serde(rename = "aws")]
-    Aws { secret: String },
+    #[strum(serialize = "aws")]
+    Aws { secret: String, profile: String },
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -14,5 +14,8 @@ pub enum Config {
         reset: bool,
     },
     /// Get config
-    Get,
+    Get {
+        #[arg(long)]
+        all: bool,
+    },
 }

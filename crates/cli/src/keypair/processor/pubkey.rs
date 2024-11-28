@@ -44,8 +44,11 @@ pub async fn process_pubkey(
 
                 println!("Public Key (retrieved from local keystore): {keypair}");
             }
-            Keystore::Aws { secret: s } => {
-                let config = aws_config::load_from_env().await;
+            Keystore::Aws {
+                secret: s,
+                profile: p,
+            } => {
+                let config = aws_config::from_env().profile_name(p).load().await;
                 let aws_keystore = keystore::aws::AwsEncryptedKeystore::new(&config);
 
                 let keypair: bn254::Keypair = aws_keystore
@@ -68,7 +71,10 @@ pub async fn process_pubkey(
                     private_key.address()
                 );
             }
-            Keystore::Aws { secret: _ } => todo!(),
+            Keystore::Aws {
+                secret: _,
+                profile: _,
+            } => todo!(),
         },
     }
     Ok(())
