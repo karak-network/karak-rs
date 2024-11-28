@@ -87,15 +87,6 @@ pub fn multi_select<T: ToString>(prompt: &str, items: &[T]) -> eyre::Result<Vec<
         .map_err(|e| eyre::eyre!(e))
 }
 
-pub fn confirm(prompt: &str, default: Option<bool>) -> eyre::Result<bool> {
-    let theme = ColorfulTheme::default();
-    let mut confirm = Confirm::with_theme(&theme).with_prompt(prompt);
-    if let Some(default) = default {
-        confirm = confirm.default(default);
-    }
-    confirm.interact().map_err(|e| eyre::eyre!(e))
-}
-
 fn find_default_index<T: ToString>(default: Option<&T>, variants: &[&str]) -> usize {
     default
         .and_then(|d| {

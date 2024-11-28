@@ -8,9 +8,9 @@ use alloy::{
     providers::Provider,
     transports::{http::reqwest, Transport},
 };
-use eyre::Result;
+use eyre::{eyre, Result};
 use karak_contracts::{
-    core::contract::{CoreError, VaultLib},
+    core::contract::VaultLib,
     erc20::{
         contract::{ERC20Error, ERC20::ERC20Instance},
         interface::IERC20Metadata::IERC20MetadataInstance,
@@ -59,8 +59,8 @@ async fn get_asset<T: Transport + Clone, P: Provider<T>>(
 
     Ok(Asset {
         address: asset_address,
-        symbol: parse_token_str(&symbol).unwrap_or_default(),
-        name: parse_token_str(&name).unwrap_or_default(),
+        symbol: util::parse_token_str(&symbol).unwrap_or_default(),
+        name: util::parse_token_str(&name).unwrap_or_default(),
         decimals,
     })
 }
@@ -207,15 +207,8 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     let vault_impl = vault_impl.unwrap_or_default();
 
     let mut vault_configs = Vec::new();
-    for erc20_instance in erc20_instances {
-        let asset = *erc20_instance.address();
-        let asset_symbol_bytes = erc20_instance.symbol().call_raw().await?;
-        let asset_symbol = util::parse_token_str(&asset_symbol_bytes).unwrap_or_default();
-        let asset_name_bytes = erc20_instance.name().call_raw().await?;
-        let asset_name = util::parse_token_str(&asset_name_bytes).unwrap_or_default();
-
-        println!("Creating vault for asset: {asset}");
-        let decimals = erc20_instance.decimals().call().await?._0;
+    for asset in &assets {
+        println!("Creating vault for asset: {}", asset.symbol);
 
         let name = prompter::input("Please enter vault name", Some(asset.name.clone()), None)?;
 
@@ -265,6 +258,11 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     }
 
     let receipt = call_builder.send().await?.get_receipt().await?;
+
+    let asset_map = assets
+        .into_iter()
+        .map(|asset| (asset.address, asset))
+        .collect::<HashMap<_, _>>();
 
     println!("Vault(s) deployed in tx {}", receipt.transaction_hash);
     for logs in receipt.inner.logs().chunks(4) {
