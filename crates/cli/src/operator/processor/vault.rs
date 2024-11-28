@@ -111,9 +111,11 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
     println!("Deploying the following vaults:");
     println!("{}", serde_json::to_string_pretty(&vault_configs)?);
 
+    let call_builder = core_instance.deployVaults(vault_configs.clone(), vault_impl);
+
     println!(
         "Estimated gas price: {} gwei",
-        util::get_gas_price(&core_instance.deployVaults(vault_configs.clone(), vault_impl)).await?
+        util::get_gas_price(&call_builder).await?
     );
 
     if !skip_confirmation {
@@ -124,12 +126,7 @@ pub async fn process_vault_creation<T: Transport + Clone, P: Provider<T> + Clone
         }
     }
 
-    let receipt = core_instance
-        .deployVaults(vault_configs, vault_impl)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
+    let receipt = call_builder.send().await?.get_receipt().await?;
 
     println!("Vault(s) deployed in tx {}", receipt.transaction_hash);
     for logs in receipt.inner.logs().chunks(4) {
