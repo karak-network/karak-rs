@@ -1,0 +1,100 @@
+[
+  {
+    "type": "event",
+    "name": "HookCallFailed",
+    "inputs": [
+      {
+        "name": "returnData",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "HookCallSucceeded",
+    "inputs": [
+      {
+        "name": "returnData",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InterfaceNotSupported",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AllVaultsNotUnstakedFromDSS",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DSSHookCallReverted",
+    "inputs": [
+      {
+        "name": "revertReason",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidQueuedStakeUpdateInput",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MaxDSSCapacityReached",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotEnoughGas",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OperatorAlreadyRegisteredToDSS",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OperatorNotValidatingForDSS",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OperatorStakeUpdateDelayNotPassed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PendingStakeUpdateRequest",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VaultAlreadyStakedInDSS",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VaultNotAChildVault",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VaultNotStakedInDSS",
+    "inputs": []
+  }
+]

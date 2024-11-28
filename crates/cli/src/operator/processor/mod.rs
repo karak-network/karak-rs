@@ -13,9 +13,12 @@ use alloy::{
     signers::{aws::AwsSigner, local::LocalSigner, Signer},
 };
 use karak_contracts::{
-    erc20::mintable::ERC20Mintable, registry::RestakingRegistry, vault::Vault::VaultInstance,
-    Core::CoreInstance,
+    erc20::contract::ERC20::ERC20Instance, registry::RestakingRegistry,
+    vault::Vault::VaultInstance, Core::CoreInstance,
 };
+
+#[cfg(feature = "testnet")]
+use karak_contracts::erc20::mintable::ERC20Mintable::ERC20MintableInstance;
 
 use crate::config::models::{Curve, Keystore, Profile};
 use crate::prompter;
@@ -266,7 +269,7 @@ pub async fn process(
             };
             let vault_instance = VaultInstance::new(vault_address, provider.clone());
             let asset_address = vault_instance.asset().call().await?._0;
-            let erc20_instance = ERC20Mintable::new(asset_address, provider.clone());
+            let erc20_instance = ERC20Instance::new(asset_address, provider.clone());
 
             vault::deposit_to_vault(
                 amount,
@@ -291,7 +294,7 @@ pub async fn process(
                 None => prompter::input::<U256>("Enter amount", None, None)?,
             };
 
-            let erc20_instance = ERC20Mintable::new(asset_address, provider);
+            let erc20_instance = ERC20MintableInstance::new(asset_address, provider);
             erc20::mint(amount, operator_address, erc20_instance).await?
         }
     }

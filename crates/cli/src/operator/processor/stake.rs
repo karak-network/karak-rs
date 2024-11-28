@@ -6,7 +6,10 @@ use alloy::{
 use clap::ValueEnum;
 use eyre::Result;
 use karak_contracts::{
-    core::contract::Operator::{QueuedStakeUpdate, StakeUpdateRequest},
+    core::contract::{
+        CoreError,
+        Operator::{QueuedStakeUpdate, StakeUpdateRequest},
+    },
     Core::{self, CoreInstance},
 };
 use strum_macros::{Display, EnumString, FromRepr, VariantNames};
@@ -41,9 +44,11 @@ pub async fn process_stake_update_request<T: Transport + Clone, P: Provider<T>>(
     let receipt = core_instance
         .requestUpdateVaultStakeInDSS(stake_update_request)
         .send()
-        .await?
+        .await
+        .map_err(CoreError::from)?
         .get_receipt()
-        .await?;
+        .await
+        .map_err(CoreError::from)?;
 
     println!("Requested stake update in tx {}", receipt.transaction_hash);
 
@@ -83,9 +88,11 @@ pub async fn process_finalize_stake_update_request<T: Transport + Clone, P: Prov
     let receipt = core_instance
         .finalizeUpdateVaultStakeInDSS(queued_stake_update)
         .send()
-        .await?
+        .await
+        .map_err(CoreError::from)?
         .get_receipt()
-        .await?;
+        .await
+        .map_err(CoreError::from)?;
 
     println!("Finalized stake update in tx {}", receipt.transaction_hash);
 

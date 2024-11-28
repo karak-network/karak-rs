@@ -8,6 +8,7 @@ pub mod bls;
 pub mod config;
 pub mod constants;
 pub mod keypair;
+mod model;
 pub mod operator;
 pub mod prompter;
 pub mod root;
