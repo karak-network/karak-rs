@@ -46,9 +46,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: cargo doc
         run:
-          cargo doc --workspace --exclude karak-cli --all-features --no-deps && \
-          cargo doc --package karak-cli --features default,testnet --no-deps
+          cargo doc --workspace --exclude karak-cli --all-features --no-deps && cargo doc --package karak-cli --features default,testnet --no-deps
       - name: test doc
         run:
-          cargo test --doc --workspace --exclude karak-cli --all-features && \
-          cargo test --doc --package karak-cli --features default,testnet
+          cargo test --doc --workspace --exclude karak-cli --all-features && cargo test --doc --package karak-cli --features default,testnet
