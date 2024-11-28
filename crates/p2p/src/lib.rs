@@ -74,8 +74,13 @@ impl<M: AsRef<[u8]>> KarakP2P<M> {
         termination_receiver: oneshot::Receiver<()>,
         message_receiver: mpsc::Receiver<GossipMessage<M>>,
         idle_timeout_duration: u64,
+        p2p_keypair: Option<libp2p::identity::Keypair>,
     ) -> Result<Self, KarakP2PError> {
-        let mut swarm = libp2p::SwarmBuilder::with_new_identity()
+        let swarm_with_key = match p2p_keypair {
+            Some(keypair) => libp2p::SwarmBuilder::with_existing_identity(keypair),
+            None => libp2p::SwarmBuilder::with_new_identity(),
+        };
+        let mut swarm = swarm_with_key
             .with_tokio()
             .with_tcp(
                 tcp::Config::default(),
