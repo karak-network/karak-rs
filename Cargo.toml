@@ -13,7 +13,7 @@ rust-version = "1.79.0"
 karak-contracts = { version = "0.2.1", path = "crates/contracts" }
 karak-kms = { version = "0.2.1", path = "crates/kms" }
 karak-rs = { version = "0.2.1", path = "crates/karak-rs" }
-karak-p2p = { version = "0.2.1", path = "crates/p2p" }
+karak-p2p = { version = "0.3.0", path = "crates/p2p" }
 
 alloy = { version = "0.3.3", features = ["full"] }
 alloy-serde = "0.3.3"
