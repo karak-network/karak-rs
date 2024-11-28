@@ -73,12 +73,9 @@ pub async fn prompt_local_config(
     match local_config {
         Some(lc) => Ok(lc),
         None => {
-            let keystore_path = PathBuf::from(prompter::input::<String>(
-                "Enter key generation folder",
-                None,
-                None,
-            )?)
-            .canonicalize()?;
+            let keystore_path =
+                PathBuf::from(prompter::input::<String>("Enter keypair path", None, None)?)
+                    .canonicalize()?;
             Ok(LocalKeypairConfig {
                 keystore_path: Some(keystore_path),
             })
