@@ -151,8 +151,6 @@ impl Display for Core::CoreErrors {
 
 impl_decode_error!(Core::CoreErrors);
 
-// impl_decode_error!(Core::CoreErrors);
-
 #[derive(thiserror::Error, Debug)]
 pub enum CoreError<E: std::fmt::Debug> {
     #[error("Core error: {0}")]
