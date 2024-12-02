@@ -3383,7 +3383,6 @@ dependencies = [
  "hex",
  "karak-contracts",
  "karak-kms",
- "once_cell",
  "rand",
  "rpassword",
  "serde",
