@@ -5,7 +5,7 @@ use alloy::primitives::Address;
 use color_eyre::owo_colors::OwoColorize;
 
 use crate::config::models::{Chain, Profile};
-use crate::constants::DEFAULT_KARAK_DIR;
+use crate::constants::default_karak_dir;
 use crate::prompter;
 use crate::types::Url;
 
@@ -40,7 +40,7 @@ pub fn profile_prompt(profile: Option<Profile>) -> eyre::Result<Profile> {
     let chain = prompt_chain(None)?;
     let key_generation_folder = PathBuf::from(prompter::input::<String>(
         "Enter key generation folder",
-        Some(DEFAULT_KARAK_DIR.to_owned()),
+        Some(default_karak_dir()),
         None,
     )?)
     .canonicalize()
@@ -48,9 +48,9 @@ pub fn profile_prompt(profile: Option<Profile>) -> eyre::Result<Profile> {
         println!(
             "{} - Using default karak folder: {}",
             e.to_string().red(),
-            DEFAULT_KARAK_DIR.to_string().bold()
+            default_karak_dir().bold()
         );
-        PathBuf::from(DEFAULT_KARAK_DIR.to_string())
+        PathBuf::from(default_karak_dir())
     });
     let core_address = prompter::input::<Address>("Enter Karak Core contract address", None, None)?;
 

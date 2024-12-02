@@ -1,20 +1,15 @@
 use std::env;
 
-use once_cell::sync::Lazy;
-
-pub static DEFAULT_KARAK_DIR: Lazy<String> = Lazy::new(|| {
+pub fn default_karak_dir() -> String {
     format!(
         "{}/.karak",
         env::var("HOME").expect("HOME environment variable not set")
     )
-});
+}
 
-pub static DEFAULT_CONFIG_PATH: Lazy<String> = Lazy::new(|| {
-    format!(
-        "{}/.karak/config.yaml",
-        env::var("HOME").expect("HOME environment variable not set")
-    )
-});
+pub fn default_config_path() -> String {
+    format!("{}/config.yaml", default_karak_dir())
+}
 
 pub const DEFAULT_PROFILE: &str = "default";
 

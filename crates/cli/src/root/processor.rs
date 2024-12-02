@@ -13,7 +13,7 @@ use super::{Command, Root};
 
 pub async fn process(root: Root) -> eyre::Result<()> {
     let profile_str = root.profile.unwrap_or_default();
-    let config_path = root.config_path.unwrap_or_default();
+    let config_path = root.config_path;
 
     match root.command {
         Some(Command::Config(config)) => {
