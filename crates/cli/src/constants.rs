@@ -5,14 +5,14 @@ use once_cell::sync::Lazy;
 pub static DEFAULT_KARAK_DIR: Lazy<String> = Lazy::new(|| {
     format!(
         "{}/.karak",
-        env::var("HOME").unwrap_or_else(|_| String::from("/"))
+        env::var("HOME").expect("HOME environment variable not set")
     )
 });
 
 pub static DEFAULT_CONFIG_PATH: Lazy<String> = Lazy::new(|| {
     format!(
         "{}/.karak/config.yaml",
-        env::var("HOME").unwrap_or_else(|_| String::from("/"))
+        env::var("HOME").expect("HOME environment variable not set")
     )
 });
 
