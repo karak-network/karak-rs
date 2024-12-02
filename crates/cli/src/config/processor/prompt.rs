@@ -48,9 +48,9 @@ pub fn profile_prompt(profile: Option<Profile>) -> eyre::Result<Profile> {
         println!(
             "{} - Using default karak folder: {}",
             e.to_string().red(),
-            DEFAULT_KARAK_DIR.bold()
+            DEFAULT_KARAK_DIR.to_string().bold()
         );
-        PathBuf::from(DEFAULT_KARAK_DIR)
+        PathBuf::from(DEFAULT_KARAK_DIR.to_string())
     });
     let core_address = prompter::input::<Address>("Enter Karak Core contract address", None, None)?;
 

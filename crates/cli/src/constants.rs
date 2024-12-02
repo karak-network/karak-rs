@@ -1,6 +1,20 @@
-pub const DEFAULT_KARAK_DIR: &str = concat!(env!("HOME"), "/.karak");
-// TODO: Fix this redundant path issue
-pub const DEFAULT_CONFIG_PATH: &str = concat!(env!("HOME"), "/.karak/config.yaml");
+use std::env;
+
+use once_cell::sync::Lazy;
+
+pub static DEFAULT_KARAK_DIR: Lazy<String> = Lazy::new(|| {
+    format!(
+        "{}/.karak",
+        env::var("HOME").unwrap_or_else(|_| String::from("/"))
+    )
+});
+
+pub static DEFAULT_CONFIG_PATH: Lazy<String> = Lazy::new(|| {
+    format!(
+        "{}/.karak/config.yaml",
+        env::var("HOME").unwrap_or_else(|_| String::from("/"))
+    )
+});
 
 pub const DEFAULT_PROFILE: &str = "default";
 

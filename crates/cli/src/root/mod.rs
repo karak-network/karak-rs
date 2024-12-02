@@ -14,7 +14,7 @@ pub struct Root {
     #[arg(short = 'p', long, global = true, default_value = DEFAULT_PROFILE)]
     pub profile: Option<String>,
 
-    #[arg(short = 'c', long, global = true, default_value = DEFAULT_CONFIG_PATH)]
+    #[arg(short = 'c', long, global = true, default_value = DEFAULT_CONFIG_PATH.as_str())]
     pub config_path: Option<String>,
 
     #[arg(long = "completions", value_enum)]
