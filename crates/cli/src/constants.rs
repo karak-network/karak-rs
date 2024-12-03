@@ -1,6 +1,15 @@
-pub const DEFAULT_KARAK_DIR: &str = concat!(env!("HOME"), "/.karak");
-// TODO: Fix this redundant path issue
-pub const DEFAULT_CONFIG_PATH: &str = concat!(env!("HOME"), "/.karak/config.yaml");
+use std::env;
+
+pub fn default_karak_dir() -> String {
+    format!(
+        "{}/.karak",
+        env::var("HOME").expect("HOME environment variable not set")
+    )
+}
+
+pub fn default_config_path() -> String {
+    format!("{}/config.yaml", default_karak_dir())
+}
 
 pub const DEFAULT_PROFILE: &str = "default";
 
